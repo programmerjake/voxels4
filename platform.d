@@ -3,17 +3,17 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
+ *
  * Voxels is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
+ * along with Voxels; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
- * 
+ *
  */
 module platform;
 
@@ -49,7 +49,7 @@ static this()
     enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24), "can't call SDL_GL_SetAttribute : %s");
     enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1), "can't call SDL_GL_SetAttribute : %s");
     videoSurface = SDL_SetVideoMode(640, 480, 32, SDL_OPENGL);
-    enforceSDL(videoSurface != null, "can't set video mode : %s");    
+    enforceSDL(videoSurface != null, "can't set video mode : %s");
     SDL_EnableUNICODE(1);
     enforceSDL(0 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL), "can't call SDL_EnableKeyRepeat : %s");
 }
@@ -319,11 +319,11 @@ private KeyboardKey translateKey(SDLKey input)
     	return KeyboardKey.RMeta;
     case SDLK_LMETA:
     	return KeyboardKey.LMeta;
-    case SDLK_LSUPER:    
+    case SDLK_LSUPER:
     	return KeyboardKey.LSuper;
-    case SDLK_RSUPER:    
+    case SDLK_RSUPER:
     	return KeyboardKey.RSuper;
-    case SDLK_MODE:    
+    case SDLK_MODE:
     	return KeyboardKey.Mode;
     case SDLK_COMPOSE:
     case SDLK_HELP:
@@ -337,9 +337,9 @@ private KeyboardKey translateKey(SDLKey input)
     	return KeyboardKey.Break;
     case SDLK_MENU:
     	return KeyboardKey.Menu;
-    case SDLK_POWER:    
-    case SDLK_EURO:    
-    case SDLK_UNDO:    
+    case SDLK_POWER:
+    case SDLK_EURO:
+    case SDLK_UNDO:
 		// TODO: implement keys
     	return KeyboardKey.Unknown;
     default:
@@ -642,14 +642,14 @@ public enum KeyboardKey
     KPadPageDown = KPad3,
     KPad4 = SDLK_KP4,
     KPadLeft = KPad4,
-    KPad5 = SDLK_KP5,    
+    KPad5 = SDLK_KP5,
     KPad6 = SDLK_KP6,
     KPadRight = KPad6,
-    KPad7 = SDLK_KP7,    
+    KPad7 = SDLK_KP7,
     KPadHome = KPad7,
     KPad8 = SDLK_KP8,
-    KPadUp = KPad8,    
-    KPad9 = SDLK_KP9,    
+    KPadUp = KPad8,
+    KPad9 = SDLK_KP9,
     KPadPageUp = KPad9,
     KPadFSlash = SDLK_KP_DIVIDE,
     KPadStar = SDLK_KP_MULTIPLY,

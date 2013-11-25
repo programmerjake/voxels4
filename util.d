@@ -15,21 +15,33 @@
  * MA 02110-1301, USA.
  *
  */
-module main;
+module util;
 
-import std.stdio;
-import platform;
-import event;
+private import std.c.math;
 
-int main(string[] args)
+template limit(T)
 {
-    bool done = false;
-    while(!done)
-    {
-		glClearColor(1, 0, 0, 0);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		flipDisplay();
-		handleEvents(null);
+	T limit(T v, T minV, T maxV)
+	{
+		if(v < minV)
+			return minV;
+		if(v > maxV)
+			return maxV;
+		return v;
 	}
-	return 0;
+}
+
+ubyte convertToUByte(int v)
+{
+	return cast(ubyte)limit(v, 0, 0xFF);
+}
+
+ubyte convertToUByte(float v)
+{
+	return convertToUByte(cast(int)(v * 0x100));
+}
+
+float convertFromUByteToFloat(ubyte v)
+{
+	return cast(float)v / 0xFF;
 }
