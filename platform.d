@@ -19,31 +19,28 @@ module platform;
 
 public import derelict.sdl.sdl;
 public import derelict.opengl.gl;
+public import derelict.ogg.ogg;
+public import derelict.ogg.vorbis;
 public import std.string;
 
 private
 {
 	import event;
     import std.exception;
-	immutable shared std.Object SDLSyncObject = new std.Object();
+    import core.runtime;
+    import std.c.stdlib;
+	const shared Object SDLSyncObject;
+	static this()
+	{
+		SDLSyncObject = new shared(const(Object))();
+ 	}
 }
 
 static this()
 {
     DerelictSDL.load();
     DerelictGL.load();
-}
-
-private static bool needSDLQuit = false;
-private static SDL_Surface * videoSurface = null;
-
-private void enforceSDL(lazy bool value, string msg)
-{
-    enforce(value, format(msg, SDL_GetError()));
-}
-
-public void init(string[] args)
-{
+    DerelictVorbis.load();
     enforceSDL(0 == SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_AUDIO), "can't start SDL : %s");
     needSDLQuit = true;
     enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
@@ -52,7 +49,17 @@ public void init(string[] args)
     enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24), "can't call SDL_GL_SetAttribute : %s");
     enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1), "can't call SDL_GL_SetAttribute : %s");
     videoSurface = SDL_SetVideoMode(640, 480, 32, SDL_OPENGL);
-    enforceSDL(videoSurface != null, "can't set video mode : %s");
+    enforceSDL(videoSurface != null, "can't set video mode : %s");    
+    SDL_EnableUNICODE(1);
+    enforceSDL(0 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL), "can't call SDL_EnableKeyRepeat : %s");
+}
+
+private static bool needSDLQuit = false;
+private static SDL_Surface * videoSurface = null;
+
+private void enforceSDL(lazy bool value, string msg)
+{
+    enforce(value, format(msg, SDL_GetError()));
 }
 
 public void flipDisplay()
@@ -69,299 +76,448 @@ private KeyboardKey translateKey(SDLKey input)
 	{
 	case SDLK_BACKSPACE:
 		return KeyboardKey.Backspace;
-    SDLK_TAB        = 9,
-    SDLK_CLEAR      = 12,
-    SDLK_RETURN     = 13,
-    SDLK_PAUSE      = 19,
-    SDLK_ESCAPE     = 27,
-    SDLK_SPACE      = 32,
-    SDLK_EXCLAIM        = 33,
-    SDLK_QUOTEDBL       = 34,
-    SDLK_HASH       = 35,
-    SDLK_DOLLAR     = 36,
-    SDLK_AMPERSAND      = 38,
-    SDLK_QUOTE      = 39,
-    SDLK_LEFTPAREN      = 40,
-    SDLK_RIGHTPAREN     = 41,
-    SDLK_ASTERISK       = 42,
-    SDLK_PLUS       = 43,
-    SDLK_COMMA      = 44,
-    SDLK_MINUS      = 45,
-    SDLK_PERIOD     = 46,
-    SDLK_SLASH      = 47,
-    SDLK_0          = 48,
-    SDLK_1          = 49,
-    SDLK_2          = 50,
-    SDLK_3          = 51,
-    SDLK_4          = 52,
-    SDLK_5          = 53,
-    SDLK_6          = 54,
-    SDLK_7          = 55,
-    SDLK_8          = 56,
-    SDLK_9          = 57,
-    SDLK_COLON      = 58,
-    SDLK_SEMICOLON      = 59,
-    SDLK_LESS       = 60,
-    SDLK_EQUALS     = 61,
-    SDLK_GREATER        = 62,
-    SDLK_QUESTION       = 63,
-    SDLK_AT         = 64,
-    /*
-       Skip uppercase letters
-     */
-    SDLK_LEFTBRACKET    = 91,
-    SDLK_BACKSLASH      = 92,
-    SDLK_RIGHTBRACKET   = 93,
-    SDLK_CARET      = 94,
-    SDLK_UNDERSCORE     = 95,
-    SDLK_BACKQUOTE      = 96,
-    SDLK_a          = 97,
-    SDLK_b          = 98,
-    SDLK_c          = 99,
-    SDLK_d          = 100,
-    SDLK_e          = 101,
-    SDLK_f          = 102,
-    SDLK_g          = 103,
-    SDLK_h          = 104,
-    SDLK_i          = 105,
-    SDLK_j          = 106,
-    SDLK_k          = 107,
-    SDLK_l          = 108,
-    SDLK_m          = 109,
-    SDLK_n          = 110,
-    SDLK_o          = 111,
-    SDLK_p          = 112,
-    SDLK_q          = 113,
-    SDLK_r          = 114,
-    SDLK_s          = 115,
-    SDLK_t          = 116,
-    SDLK_u          = 117,
-    SDLK_v          = 118,
-    SDLK_w          = 119,
-    SDLK_x          = 120,
-    SDLK_y          = 121,
-    SDLK_z          = 122,
-    SDLK_DELETE     = 127,
-    /* End of ASCII mapped keysyms */
-
-    /* International keyboard syms */
-    SDLK_WORLD_0        = 160,      /* 0xA0 */
-    SDLK_WORLD_1        = 161,
-    SDLK_WORLD_2        = 162,
-    SDLK_WORLD_3        = 163,
-    SDLK_WORLD_4        = 164,
-    SDLK_WORLD_5        = 165,
-    SDLK_WORLD_6        = 166,
-    SDLK_WORLD_7        = 167,
-    SDLK_WORLD_8        = 168,
-    SDLK_WORLD_9        = 169,
-    SDLK_WORLD_10       = 170,
-    SDLK_WORLD_11       = 171,
-    SDLK_WORLD_12       = 172,
-    SDLK_WORLD_13       = 173,
-    SDLK_WORLD_14       = 174,
-    SDLK_WORLD_15       = 175,
-    SDLK_WORLD_16       = 176,
-    SDLK_WORLD_17       = 177,
-    SDLK_WORLD_18       = 178,
-    SDLK_WORLD_19       = 179,
-    SDLK_WORLD_20       = 180,
-    SDLK_WORLD_21       = 181,
-    SDLK_WORLD_22       = 182,
-    SDLK_WORLD_23       = 183,
-    SDLK_WORLD_24       = 184,
-    SDLK_WORLD_25       = 185,
-    SDLK_WORLD_26       = 186,
-    SDLK_WORLD_27       = 187,
-    SDLK_WORLD_28       = 188,
-    SDLK_WORLD_29       = 189,
-    SDLK_WORLD_30       = 190,
-    SDLK_WORLD_31       = 191,
-    SDLK_WORLD_32       = 192,
-    SDLK_WORLD_33       = 193,
-    SDLK_WORLD_34       = 194,
-    SDLK_WORLD_35       = 195,
-    SDLK_WORLD_36       = 196,
-    SDLK_WORLD_37       = 197,
-    SDLK_WORLD_38       = 198,
-    SDLK_WORLD_39       = 199,
-    SDLK_WORLD_40       = 200,
-    SDLK_WORLD_41       = 201,
-    SDLK_WORLD_42       = 202,
-    SDLK_WORLD_43       = 203,
-    SDLK_WORLD_44       = 204,
-    SDLK_WORLD_45       = 205,
-    SDLK_WORLD_46       = 206,
-    SDLK_WORLD_47       = 207,
-    SDLK_WORLD_48       = 208,
-    SDLK_WORLD_49       = 209,
-    SDLK_WORLD_50       = 210,
-    SDLK_WORLD_51       = 211,
-    SDLK_WORLD_52       = 212,
-    SDLK_WORLD_53       = 213,
-    SDLK_WORLD_54       = 214,
-    SDLK_WORLD_55       = 215,
-    SDLK_WORLD_56       = 216,
-    SDLK_WORLD_57       = 217,
-    SDLK_WORLD_58       = 218,
-    SDLK_WORLD_59       = 219,
-    SDLK_WORLD_60       = 220,
-    SDLK_WORLD_61       = 221,
-    SDLK_WORLD_62       = 222,
-    SDLK_WORLD_63       = 223,
-    SDLK_WORLD_64       = 224,
-    SDLK_WORLD_65       = 225,
-    SDLK_WORLD_66       = 226,
-    SDLK_WORLD_67       = 227,
-    SDLK_WORLD_68       = 228,
-    SDLK_WORLD_69       = 229,
-    SDLK_WORLD_70       = 230,
-    SDLK_WORLD_71       = 231,
-    SDLK_WORLD_72       = 232,
-    SDLK_WORLD_73       = 233,
-    SDLK_WORLD_74       = 234,
-    SDLK_WORLD_75       = 235,
-    SDLK_WORLD_76       = 236,
-    SDLK_WORLD_77       = 237,
-    SDLK_WORLD_78       = 238,
-    SDLK_WORLD_79       = 239,
-    SDLK_WORLD_80       = 240,
-    SDLK_WORLD_81       = 241,
-    SDLK_WORLD_82       = 242,
-    SDLK_WORLD_83       = 243,
-    SDLK_WORLD_84       = 244,
-    SDLK_WORLD_85       = 245,
-    SDLK_WORLD_86       = 246,
-    SDLK_WORLD_87       = 247,
-    SDLK_WORLD_88       = 248,
-    SDLK_WORLD_89       = 249,
-    SDLK_WORLD_90       = 250,
-    SDLK_WORLD_91       = 251,
-    SDLK_WORLD_92       = 252,
-    SDLK_WORLD_93       = 253,
-    SDLK_WORLD_94       = 254,
-    SDLK_WORLD_95       = 255,      /* 0xFF */
-
-    /* Numeric keypad */
-    SDLK_KP0        = 256,
-    SDLK_KP1        = 257,
-    SDLK_KP2        = 258,
-    SDLK_KP3        = 259,
-    SDLK_KP4        = 260,
-    SDLK_KP5        = 261,
-    SDLK_KP6        = 262,
-    SDLK_KP7        = 263,
-    SDLK_KP8        = 264,
-    SDLK_KP9        = 265,
-    SDLK_KP_PERIOD      = 266,
-    SDLK_KP_DIVIDE      = 267,
-    SDLK_KP_MULTIPLY    = 268,
-    SDLK_KP_MINUS       = 269,
-    SDLK_KP_PLUS        = 270,
-    SDLK_KP_ENTER       = 271,
-    SDLK_KP_EQUALS      = 272,
-
-    /* Arrows + Home/End pad */
-    SDLK_UP         = 273,
-    SDLK_DOWN       = 274,
-    SDLK_RIGHT      = 275,
-    SDLK_LEFT       = 276,
-    SDLK_INSERT     = 277,
-    SDLK_HOME       = 278,
-    SDLK_END        = 279,
-    SDLK_PAGEUP     = 280,
-    SDLK_PAGEDOWN       = 281,
-
-    /* Function keys */
-    SDLK_F1         = 282,
-    SDLK_F2         = 283,
-    SDLK_F3         = 284,
-    SDLK_F4         = 285,
-    SDLK_F5         = 286,
-    SDLK_F6         = 287,
-    SDLK_F7         = 288,
-    SDLK_F8         = 289,
-    SDLK_F9         = 290,
-    SDLK_F10        = 291,
-    SDLK_F11        = 292,
-    SDLK_F12        = 293,
-    SDLK_F13        = 294,
-    SDLK_F14        = 295,
-    SDLK_F15        = 296,
-
-    /* Key state modifier keys */
-    SDLK_NUMLOCK        = 300,
-    SDLK_CAPSLOCK       = 301,
-    SDLK_SCROLLOCK      = 302,
-    SDLK_RSHIFT     = 303,
-    SDLK_LSHIFT     = 304,
-    SDLK_RCTRL      = 305,
-    SDLK_LCTRL      = 306,
-    SDLK_RALT       = 307,
-    SDLK_LALT       = 308,
-    SDLK_RMETA      = 309,
-    SDLK_LMETA      = 310,
-    SDLK_LSUPER     = 311,      /* Left "Windows" key */
-    SDLK_RSUPER     = 312,      /* Right "Windows" key */
-    SDLK_MODE       = 313,      /* "Alt Gr" key */
-    SDLK_COMPOSE        = 314,      /* Multi-key compose key */
-
-    /* Miscellaneous function keys */
-    SDLK_HELP       = 315,
-    SDLK_PRINT      = 316,
-    SDLK_SYSREQ     = 317,
-    SDLK_BREAK      = 318,
-    SDLK_MENU       = 319,
-    SDLK_POWER      = 320,      /* Power Macintosh power key */
-    SDLK_EURO       = 321,      /* Some european keyboards */
-    SDLK_UNDO       = 322,      /* Atari keyboard has Undo */
+    case SDLK_TAB:
+		return KeyboardKey.Tab;
+	case SDLK_CLEAR:
+		return KeyboardKey.Clear;
+    case SDLK_RETURN:
+		return KeyboardKey.Return;
+    case SDLK_PAUSE:
+		return KeyboardKey.Pause;
+    case SDLK_ESCAPE:
+		return KeyboardKey.Escape;
+    case SDLK_SPACE:
+		return KeyboardKey.Space;
+	case SDLK_EXCLAIM:
+		return KeyboardKey.EMark;
+    case SDLK_QUOTEDBL:
+		return KeyboardKey.DQuote;
+    case SDLK_HASH:
+    	return KeyboardKey.Pound;
+    case SDLK_DOLLAR:
+    	return KeyboardKey.Dollar;
+    case SDLK_AMPERSAND:
+    	return KeyboardKey.Amp;
+    case SDLK_QUOTE:
+    	return KeyboardKey.SQuote;
+    case SDLK_LEFTPAREN:
+    	return KeyboardKey.LParen;
+    case SDLK_RIGHTPAREN:
+    	return KeyboardKey.RParen;
+    case SDLK_ASTERISK:
+    	return KeyboardKey.Star;
+    case SDLK_PLUS:
+    	return KeyboardKey.Plus;
+    case SDLK_COMMA:
+    	return KeyboardKey.Comma;
+    case SDLK_MINUS:
+    	return KeyboardKey.Dash;
+    case SDLK_PERIOD:
+    	return KeyboardKey.Period;
+    case SDLK_SLASH:
+    	return KeyboardKey.FSlash;
+    case SDLK_0:
+    	return KeyboardKey.Num0;
+    case SDLK_1:
+    	return KeyboardKey.Num1;
+    case SDLK_2:
+    	return KeyboardKey.Num2;
+    case SDLK_3:
+    	return KeyboardKey.Num3;
+    case SDLK_4:
+    	return KeyboardKey.Num4;
+    case SDLK_5:
+    	return KeyboardKey.Num5;
+    case SDLK_6:
+    	return KeyboardKey.Num6;
+    case SDLK_7:
+    	return KeyboardKey.Num7;
+    case SDLK_8:
+    	return KeyboardKey.Num8;
+    case SDLK_9:
+    	return KeyboardKey.Num9;
+    case SDLK_COLON:
+    	return KeyboardKey.Colon;
+    case SDLK_SEMICOLON:
+    	return KeyboardKey.Semicolon;
+    case SDLK_LESS:
+    	return KeyboardKey.LAngle;
+    case SDLK_EQUALS:
+    	return KeyboardKey.Equals;
+    case SDLK_GREATER:
+    	return KeyboardKey.RAngle;
+    case SDLK_QUESTION:
+    	return KeyboardKey.QMark;
+    case SDLK_AT:
+    	return KeyboardKey.AtSign;
+    case SDLK_LEFTBRACKET:
+    	return KeyboardKey.LBracket;
+    case SDLK_BACKSLASH:
+    	return KeyboardKey.BSlash;
+    case SDLK_RIGHTBRACKET:
+    	return KeyboardKey.RBracket;
+    case SDLK_CARET:
+    	return KeyboardKey.Caret;
+    case SDLK_UNDERSCORE:
+    	return KeyboardKey.Underline;
+    case SDLK_BACKQUOTE:
+    	return KeyboardKey.BQuote;
+    case SDLK_a:
+    	return KeyboardKey.A;
+    case SDLK_b:
+    	return KeyboardKey.B;
+    case SDLK_c:
+    	return KeyboardKey.C;
+    case SDLK_d:
+    	return KeyboardKey.D;
+    case SDLK_e:
+    	return KeyboardKey.E;
+    case SDLK_f:
+    	return KeyboardKey.F;
+    case SDLK_g:
+    	return KeyboardKey.G;
+    case SDLK_h:
+    	return KeyboardKey.H;
+    case SDLK_i:
+    	return KeyboardKey.I;
+    case SDLK_j:
+    	return KeyboardKey.J;
+    case SDLK_k:
+    	return KeyboardKey.K;
+    case SDLK_l:
+    	return KeyboardKey.L;
+    case SDLK_m:
+    	return KeyboardKey.M;
+    case SDLK_n:
+    	return KeyboardKey.N;
+    case SDLK_o:
+    	return KeyboardKey.O;
+    case SDLK_p:
+    	return KeyboardKey.P;
+    case SDLK_q:
+    	return KeyboardKey.Q;
+    case SDLK_r:
+    	return KeyboardKey.R;
+    case SDLK_s:
+    	return KeyboardKey.S;
+    case SDLK_t:
+    	return KeyboardKey.T;
+    case SDLK_u:
+    	return KeyboardKey.U;
+    case SDLK_v:
+    	return KeyboardKey.V;
+    case SDLK_w:
+    	return KeyboardKey.W;
+    case SDLK_x:
+    	return KeyboardKey.X;
+    case SDLK_y:
+    	return KeyboardKey.Y;
+    case SDLK_z:
+    	return KeyboardKey.Z;
+    case SDLK_DELETE:
+    	return KeyboardKey.Delete;
+    case SDLK_KP0:
+    	return KeyboardKey.KPad0;
+    case SDLK_KP1:
+    	return KeyboardKey.KPad1;
+    case SDLK_KP2:
+    	return KeyboardKey.KPad2;
+    case SDLK_KP3:
+    	return KeyboardKey.KPad3;
+    case SDLK_KP4:
+    	return KeyboardKey.KPad4;
+    case SDLK_KP5:
+    	return KeyboardKey.KPad5;
+    case SDLK_KP6:
+    	return KeyboardKey.KPad6;
+    case SDLK_KP7:
+    	return KeyboardKey.KPad7;
+    case SDLK_KP8:
+    	return KeyboardKey.KPad8;
+    case SDLK_KP9:
+    	return KeyboardKey.KPad8;
+    case SDLK_KP_PERIOD:
+    	return KeyboardKey.KPadPeriod;
+    case SDLK_KP_DIVIDE:
+    	return KeyboardKey.KPadFSlash;
+    case SDLK_KP_MULTIPLY:
+    	return KeyboardKey.KPadStar;
+    case SDLK_KP_MINUS:
+    	return KeyboardKey.KPadDash;
+    case SDLK_KP_PLUS:
+    	return KeyboardKey.KPadPlus;
+    case SDLK_KP_ENTER:
+    	return KeyboardKey.KPadReturn;
+    case SDLK_KP_EQUALS:
+    	return KeyboardKey.KPadEquals;
+    case SDLK_UP:
+    	return KeyboardKey.Up;
+    case SDLK_DOWN:
+    	return KeyboardKey.Down;
+    case SDLK_RIGHT:
+    	return KeyboardKey.Right;
+    case SDLK_LEFT:
+    	return KeyboardKey.Left;
+    case SDLK_INSERT:
+    	return KeyboardKey.Insert;
+    case SDLK_HOME:
+    	return KeyboardKey.Home;
+    case SDLK_END:
+    	return KeyboardKey.End;
+    case SDLK_PAGEUP:
+    	return KeyboardKey.PageUp;
+    case SDLK_PAGEDOWN:
+    	return KeyboardKey.PageDown;
+    case SDLK_F1:
+    	return KeyboardKey.F1;
+    case SDLK_F2:
+    	return KeyboardKey.F2;
+    case SDLK_F3:
+    	return KeyboardKey.F3;
+    case SDLK_F4:
+    	return KeyboardKey.F4;
+    case SDLK_F5:
+    	return KeyboardKey.F5;
+    case SDLK_F6:
+    	return KeyboardKey.F6;
+    case SDLK_F7:
+    	return KeyboardKey.F7;
+    case SDLK_F8:
+    	return KeyboardKey.F8;
+    case SDLK_F9:
+    	return KeyboardKey.F9;
+    case SDLK_F10:
+    	return KeyboardKey.F10;
+    case SDLK_F11:
+    	return KeyboardKey.F11;
+    case SDLK_F12:
+    	return KeyboardKey.F12;
+    case SDLK_F13:
+    case SDLK_F14:
+    case SDLK_F15:
+		// TODO: implement keys
+		return KeyboardKey.Unknown;
+    case SDLK_NUMLOCK:
+    	return KeyboardKey.NumLock;
+    case SDLK_CAPSLOCK:
+    	return KeyboardKey.CapsLock;
+    case SDLK_SCROLLOCK:
+    	return KeyboardKey.ScrollLock;
+    case SDLK_RSHIFT:
+    	return KeyboardKey.RShift;
+    case SDLK_LSHIFT:
+    	return KeyboardKey.LShift;
+    case SDLK_RCTRL:
+    	return KeyboardKey.RCtrl;
+    case SDLK_LCTRL:
+    	return KeyboardKey.LCtrl;
+    case SDLK_RALT:
+    	return KeyboardKey.RAlt;
+    case SDLK_LALT:
+    	return KeyboardKey.LAlt;
+    case SDLK_RMETA:
+    	return KeyboardKey.RMeta;
+    case SDLK_LMETA:
+    	return KeyboardKey.LMeta;
+    case SDLK_LSUPER:    
+    	return KeyboardKey.LSuper;
+    case SDLK_RSUPER:    
+    	return KeyboardKey.RSuper;
+    case SDLK_MODE:    
+    	return KeyboardKey.Mode;
+    case SDLK_COMPOSE:
+    case SDLK_HELP:
+		// TODO: implement keys
+    	return KeyboardKey.Unknown;
+    case SDLK_PRINT:
+    	return KeyboardKey.PrintScreen;
+    case SDLK_SYSREQ:
+    	return KeyboardKey.SysRequest;
+    case SDLK_BREAK:
+    	return KeyboardKey.Break;
+    case SDLK_MENU:
+    	return KeyboardKey.Menu;
+    case SDLK_POWER:    
+    case SDLK_EURO:    
+    case SDLK_UNDO:    
+		// TODO: implement keys
+    	return KeyboardKey.Unknown;
+    default:
+		return KeyboardKey.Unknown;
 	}
 }
+
+private KeyboardModifiers translateModifiers(SDLMod input)
+{
+	KeyboardModifiers retval = KeyboardModifiers.None;
+	if(input & KMOD_LSHIFT) retval |= KeyboardModifiers.LShift;
+	if(input & KMOD_RSHIFT) retval |= KeyboardModifiers.RShift;
+	if(input & KMOD_LALT) retval |= KeyboardModifiers.LAlt;
+	if(input & KMOD_RALT) retval |= KeyboardModifiers.RAlt;
+	if(input & KMOD_LCTRL) retval |= KeyboardModifiers.LCtrl;
+	if(input & KMOD_RCTRL) retval |= KeyboardModifiers.RCtrl;
+	if(input & KMOD_LMETA) retval |= KeyboardModifiers.LMeta;
+	if(input & KMOD_RMETA) retval |= KeyboardModifiers.RMeta;
+	if(input & KMOD_NUM) retval |= KeyboardModifiers.NumLock;
+	if(input & KMOD_CAPS) retval |= KeyboardModifiers.CapsLock;
+	if(input & KMOD_MODE) retval |= KeyboardModifiers.Mode;
+	return retval;
+}
+
+private MouseButton translateButton(Uint8 button)
+{
+	switch(button)
+	{
+	case SDL_BUTTON_LEFT:
+		return MouseButton.Left;
+	case SDL_BUTTON_MIDDLE:
+		return MouseButton.Middle;
+	case SDL_BUTTON_RIGHT:
+		return MouseButton.Right;
+	case SDL_BUTTON_X1:
+		return MouseButton.X1;
+	case SDL_BUTTON_X2:
+		return MouseButton.X2;
+	default:
+		return MouseButton.None;
+	}
+}
+
+private ref shared(bool) keyState(KeyboardKey key)
+{
+	static shared bool state[KeyboardKey.max + 1 - KeyboardKey.min];
+	return state[cast(int)key + KeyboardKey.min];
+}
+
+private shared MouseButton buttonState = MouseButton.None;
 
 private Event makeEvent()
 {
 	synchronized(SDLSyncObject)
 	{
-		SDL_Event SDLEvent;
-		if(SDL_PollEvent(&SDLEvent) == 0)
-			return null;
-		switch(SDLEvent.type)
+		while(true)
 		{
-		case SDL_ACTIVEEVENT:
-			// TODO: handle SDL_ACTIVEEVENT
-			break;
-		case SDL_KEYDOWN:
-			return new KeyDownEvent(
-		SDL_KEYUP,
-		SDL_MOUSEMOTION,
-		SDL_MOUSEBUTTONDOWN,
-		SDL_MOUSEBUTTONUP,
-		SDL_JOYAXISMOTION,
-		SDL_JOYBALLMOTION,
-		SDL_JOYHATMOTION,
-		SDL_JOYBUTTONDOWN,
-		SDL_JOYBUTTONUP,
-		SDL_QUIT,
-		SDL_SYSWMEVENT,
-		SDL_EVENT_RESERVEDA,
-		SDL_EVENT_RESERVEDB,
-		SDL_VIDEORESIZE,
-		SDL_VIDEOEXPOSE,
-		SDL_EVENT_RESERVED2,
-		SDL_EVENT_RESERVED3,
-		SDL_EVENT_RESERVED4,
-		SDL_EVENT_RESERVED5,
-		SDL_EVENT_RESERVED6,
-		SDL_EVENT_RESERVED7,
+			SDL_Event SDLEvent;
+			if(SDL_PollEvent(&SDLEvent) == 0)
+				return null;
+			switch(SDLEvent.type)
+			{
+			case SDL_ACTIVEEVENT:
+				// TODO: handle SDL_ACTIVEEVENT
+				break;
+			case SDL_KEYDOWN:
+			{
+				KeyboardKey key = translateKey(SDLEvent.key.keysym.sym);
+				Event retval = new KeyDownEvent(key, translateModifiers(SDLEvent.key.keysym.mod), keyState(key));
+				keyState(key) = true;
+				return retval;
+			}
+			case SDL_KEYUP:
+			{
+				KeyboardKey key = translateKey(SDLEvent.key.keysym.sym);
+				Event retval = new KeyUpEvent(key, translateModifiers(SDLEvent.key.keysym.mod));
+				keyState(key) = false;
+				return retval;
+			}
+			case SDL_MOUSEMOTION:
+				return new MouseMoveEvent(SDLEvent.motion.x, SDLEvent.motion.y, SDLEvent.motion.xrel, SDLEvent.motion.yrel);
+			case SDL_MOUSEBUTTONDOWN:
+			{
+				MouseButton button = translateButton(SDLEvent.button.button);
+				buttonState |= button; // set bit
+				return new MouseDownEvent(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
+			}
+			case SDL_MOUSEBUTTONUP:
+			{
+				MouseButton button = translateButton(SDLEvent.button.button);
+				buttonState &= ~button; // clear bit
+				return new MouseUpEvent(SDLEvent.button.x, SDLEvent.button.y, 0, 0, button);
+			}
+			case SDL_JOYAXISMOTION:
+			case SDL_JOYBALLMOTION:
+			case SDL_JOYHATMOTION:
+			case SDL_JOYBUTTONDOWN:
+			case SDL_JOYBUTTONUP:
+				//TODO: handle joysticks
+				break;
+			case SDL_QUIT:
+				return new QuitEvent();
+			case SDL_SYSWMEVENT:
+				//TODO: handle SDL_SYSWMEVENT
+				break;
+			case SDL_VIDEORESIZE:
+				//TODO: handle SDL_VIDEORESIZE
+				break;
+			case SDL_VIDEOEXPOSE:
+				//TODO: handle SDL_VIDEOEXPOSE
+				break;
+			case SDL_EVENT_RESERVEDA:
+			case SDL_EVENT_RESERVEDB:
+			case SDL_EVENT_RESERVED2:
+			case SDL_EVENT_RESERVED3:
+			case SDL_EVENT_RESERVED4:
+			case SDL_EVENT_RESERVED5:
+			case SDL_EVENT_RESERVED6:
+			case SDL_EVENT_RESERVED7:
+			default:
+				break;
+			}
+		}
+	}
+}
+
+private final class DefaultEventHandler : EventHandler
+{
+	private static immutable DefaultEventHandler handler;
+	static this()
+	{
+		handler = new immutable(DefaultEventHandler)();
+	}
+    public bool handleMouseUp(MouseUpEvent event)
+    {
+		return true;
+	}
+    public bool handleMouseDown(MouseDownEvent event)
+    {
+		return true;
+	}
+    public bool handleMouseMove(MouseMoveEvent event)
+    {
+		return true;
+	}
+    public bool handleMouseScroll(MouseScrollEvent event)
+    {
+		return true;
+	}
+    public bool handleKeyUp(KeyUpEvent event)
+    {
+		return true;
+	}
+    public bool handleKeyDown(KeyDownEvent event)
+    {
+		return true;
+	}
+    public bool handleKeyPress(KeyPressEvent event)
+    {
+		return true;
+	}
+    public bool handleQuit(QuitEvent event)
+    {
+		synchronized(SDLSyncObject)
+		{
+			Runtime.terminate();
+			exit(0);
+			return true;
 		}
 	}
 }
 
 public void handleEvents(EventHandler eventHandler)
 {
-	for(Event e = makeEvent(); e != null; e = makeEvent())
+	for(Event e = makeEvent(); e !is null; e = makeEvent())
 	{
-		e.dispatch(eventHandler);
+		if(eventHandler is null || !e.dispatch(eventHandler))
+			e.dispatch(DefaultEventHandler.handler);
 	}
 }
 
@@ -373,6 +529,7 @@ static ~this()
 
 public enum KeyboardKey
 {
+	Unknown = SDLK_UNKNOWN,
     A = SDLK_a,
     B = SDLK_b,
     C = SDLK_c,
@@ -501,6 +658,7 @@ public enum KeyboardKey
     KPadReturn = SDLK_KP_ENTER,
     KPadPeriod = SDLK_KP_PERIOD,
     KPadDelete = KPadPeriod,
+    KPadEquals = SDLK_KP_EQUALS,
     NumLock = SDLK_NUMLOCK,
     CapsLock = SDLK_CAPSLOCK,
     ScrollLock = SDLK_SCROLLOCK,
@@ -514,10 +672,11 @@ public enum KeyboardKey
     PrintScreen = SDLK_PRINT,
     SysRequest = PrintScreen,
     Break = Pause,
-    Menu = SDLK_MENU
+    Menu = SDLK_MENU,
+    Mode = SDLK_MODE
 }
 
-public enum KeyboardModifiers
+public enum KeyboardModifiers : uint
 {
 	None = KMOD_NONE,
     LShift = KMOD_LSHIFT,
@@ -537,13 +696,14 @@ public enum KeyboardModifiers
     Meta = LMeta | RMeta,
 }
 
-public enum MouseButton
+public enum MouseButton : uint
 {
+	None = 0,
 	Left = SDL_BUTTON_LMASK,
 	Right = SDL_BUTTON_RMASK,
 	Middle = SDL_BUTTON_MMASK,
 	X1 = SDL_BUTTON_X1MASK,
-	X2 = SDL_BUTTON_X2MASK,
+	X2 = SDL_BUTTON_X2MASK
 }
 
 

@@ -19,11 +19,16 @@ module main;
 
 import std.stdio;
 import platform;
+import event;
 
 int main(string[] args)
 {
-    init(args);
     bool done = false;
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+    while(!done)
+    {
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		flipDisplay();
+		handleEvents(null);
+	}
 	return 0;
 }

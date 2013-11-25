@@ -17,16 +17,80 @@
  */
 module event;
 
+private import platform;
+
 public interface EventHandler
 {
-    public void handleMouseUp(MouseUpEvent event);
-    public void handleMouseDown(MouseDownEvent event);
-    public void handleMouseMove(MouseMoveEvent event);
-    public void handleMouseScroll(MouseScrollEvent event);
-    public void handleKeyUp(KeyUpEvent event);
-    public void handleKeyDown(KeyDownEvent event);
-    public void handleKeyPress(KeyPressEvent event);
-    public void handleQuit(QuitEvent event);
+	/** 
+	 * Returns: 
+	 * if this event handler handled the event
+	 */
+    public bool handleMouseUp(MouseUpEvent event);/// ditto
+    public bool handleMouseDown(MouseDownEvent event);/// ditto
+    public bool handleMouseMove(MouseMoveEvent event);/// ditto
+    public bool handleMouseScroll(MouseScrollEvent event);/// ditto
+    public bool handleKeyUp(KeyUpEvent event);/// ditto
+    public bool handleKeyDown(KeyDownEvent event);/// ditto
+    public bool handleKeyPress(KeyPressEvent event);/// ditto
+    public bool handleQuit(QuitEvent event);/// ditto
+}
+
+public final class CombinedEventHandler : EventHandler
+{
+	private EventHandler first, second;
+	public this(EventHandler first, EventHandler second)
+	{
+		this.first = first;
+		this.second = second;
+	}
+    public bool handleMouseUp(MouseUpEvent event)
+    {
+		if(first.handleMouseUp(event))
+			return true;
+		return second.handleMouseUp(event);
+	}
+    public bool handleMouseDown(MouseDownEvent event)
+    {
+		if(first.handleMouseDown(event))
+			return true;
+		return second.handleMouseDown(event);
+	}
+    public bool handleMouseMove(MouseMoveEvent event)
+    {
+		if(first.handleMouseMove(event))
+			return true;
+		return second.handleMouseMove(event);
+	}
+    public bool handleMouseScroll(MouseScrollEvent event)
+    {
+		if(first.handleMouseScroll(event))
+			return true;
+		return second.handleMouseScroll(event);
+	}
+    public bool handleKeyUp(KeyUpEvent event)
+    {
+		if(first.handleKeyUp(event))
+			return true;
+		return second.handleKeyUp(event);
+	}
+    public bool handleKeyDown(KeyDownEvent event)
+    {
+		if(first.handleKeyDown(event))
+			return true;
+		return second.handleKeyDown(event);
+	}
+    public bool handleKeyPress(KeyPressEvent event)
+    {
+		if(first.handleKeyPress(event))
+			return true;
+		return second.handleKeyPress(event);
+	}
+    public bool handleQuit(QuitEvent event)
+    {
+		if(first.handleQuit(event))
+			return true;
+		return second.handleQuit(event);
+	}
 }
 
 public class Event
@@ -47,53 +111,58 @@ public class Event
     {
         this.type = type;
     }
-    public abstract void dispatch(EventHandler eventHandler);
+    public abstract bool dispatch(EventHandler eventHandler);
 }
 
 public class MouseEvent : Event
 {
     public immutable float x, y;
-    protected this(Type type, float x, float y)
+	public immutable float deltaX, deltaY;
+    protected this(Type type, float x, float y, float deltaX, float deltaY)
     {
         super(type);
         this.x = x;
         this.y = y;
+        this.deltaX = deltaX;
+        this.deltaY = deltaY;
     }
 }
 
 public class KeyEvent : Event
 {
     public immutable KeyboardKey key;
-    protected this(Type type, KeyboardKey key)
+    public immutable KeyboardModifiers mods;
+    protected this(Type type, KeyboardKey key, KeyboardModifiers mods)
     {
         super(type);
         this.key = key;
+        this.mods = mods;
     }
 }
 
 public class KeyDownEvent : KeyEvent
 {
 	public immutable bool isRepetition;
-	public this(KeyboardKey key, bool isRepetition = false)
+	public this(KeyboardKey key, KeyboardModifiers mods, bool isRepetition = false)
 	{
-		super(Type.KeyDown, key);
+		super(Type.KeyDown, key, mods);
 		this.isRepetition = isRepetition;
 	}
-	public override void dispatch(EventHandler eventHandler)
+	public override bool dispatch(EventHandler eventHandler)
 	{
-		eventHandler.handleKeyDown(this);
+		return eventHandler.handleKeyDown(this);
 	}
 }
 
 public class KeyUpEvent : KeyEvent
 {
-	public this(KeyboardKey key)
+	public this(KeyboardKey key, KeyboardModifiers mods)
 	{
-		super(Type.KeyUp, key);
+		super(Type.KeyUp, key, mods);
 	}
-	public override void dispatch(EventHandler eventHandler)
+	public override bool dispatch(EventHandler eventHandler)
 	{
-		eventHandler.handleKeyUp(this);
+		return eventHandler.handleKeyUp(this);
 	}
 }
 
@@ -105,74 +174,74 @@ public class KeyPressEvent : Event
 		super(Type.KeyPress);
 		this.character = character;
 	}
-	public override void dispatch(EventHandler eventHandler)
+	public override bool dispatch(EventHandler eventHandler)
 	{
-		eventHandler.handleKeyPress(this);
+		return eventHandler.handleKeyPress(this);
 	}
 }
 
 public class MouseButtonEvent : MouseEvent
 {
 	public immutable MouseButton button;
-	protected this(Type type, float x, float y, MouseButton button)
+	protected this(Type type, float x, float y, float deltaX, float deltaY, MouseButton button)
 	{
-		super(type, x, y);
+		super(type, x, y, deltaX, deltaY);
 		this.button = button;
 	}
 }
 
 public class MouseUpEvent : MouseButtonEvent
 {
-    public this(float x, float y, MouseButton button)
+    public this(float x, float y, float deltaX, float deltaY, MouseButton button)
     {
-        super(Type.MouseUp, x, y, button);
+        super(Type.MouseUp, x, y, deltaX, deltaY, button);
     }
 
-    public void dispatch(EventHandler eventHandler)
+    public override bool dispatch(EventHandler eventHandler)
     {
-        eventHandler.handleMouseUp(this);
+        return eventHandler.handleMouseUp(this);
     }
 }
 
 public class MouseDownEvent : MouseButtonEvent
 {
-    public this(float x, float y, MouseButton button)
+    public this(float x, float y, float deltaX, float deltaY, MouseButton button)
     {
-        super(Type.MouseDown, x, y, button);
+        super(Type.MouseDown, x, y, deltaX, deltaY, button);
     }
 
-    public void dispatch(EventHandler eventHandler)
+    public override bool dispatch(EventHandler eventHandler)
     {
-        eventHandler.handleMouseDown(this);
+        return eventHandler.handleMouseDown(this);
     }
 }
 
 public class MouseMoveEvent : MouseEvent
 {
-    public this(float x, float y)
+    public this(float x, float y, float deltaX, float deltaY)
     {
-        super(Type.MouseMove, x, y);
+        super(Type.MouseMove, x, y, deltaX, deltaY);
     }
 
-    public void dispatch(EventHandler eventHandler)
+    public override bool dispatch(EventHandler eventHandler)
     {
-        eventHandler.handleMouseMove(this);
+        return eventHandler.handleMouseMove(this);
     }
 }
 
 public class MouseScrollEvent : MouseEvent
 {
     public immutable int scrollX, scrollY;
-    public this(float x, float y, int scrollX, int scrollY)
+    public this(float x, float y, float deltaX, float deltaY, int scrollX, int scrollY)
     {
-        super(Type.MouseScroll, x, y);
+        super(Type.MouseScroll, x, y, deltaX, deltaY);
         this.scrollX = scrollX;
         this.scrollY = scrollY;
     }
 
-    public void dispatch(EventHandler eventHandler)
+    public override bool dispatch(EventHandler eventHandler)
     {
-        eventHandler.handleMouseScroll(this);
+        return eventHandler.handleMouseScroll(this);
     }
 }
 
@@ -182,8 +251,8 @@ public class QuitEvent : Event
 	{
 		super(Type.Quit);
 	}
-	public void dispatch(EventHandler eventHandler)
+	public override bool dispatch(EventHandler eventHandler)
 	{
-		eventHandler.handleQuit(this);
+		return eventHandler.handleQuit(this);
 	}
 }
