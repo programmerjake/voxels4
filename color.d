@@ -21,20 +21,15 @@ private import util;
 
 public struct Color
 {
-	public const ubyte r, g, b, a;
-	public enum : ubyte OPAQUE_ALPHA = 0xFF;
-	public enum : ubyte TRANSPARENT_ALPHA = 0;
+	public ubyte r, g, b, a;
+	public static immutable ubyte OPAQUE_ALPHA = 0xFF;
+	public static immutable ubyte TRANSPARENT_ALPHA = 0;
 	public this(ubyte r, ubyte g, ubyte b, ubyte a = OPAQUE_ALPHA)
 	{
 		this.r = r;
 		this.g = g;
 		this.b = b;
 		this.a = a;
-	}
-
-	public this()
-	{
-		this(0, 0, 0, TRANSPARENT_ALPHA);
 	}
 
 	public static immutable Color TRANSPARENT = Color(0, 0, 0, TRANSPARENT_ALPHA);
@@ -79,27 +74,47 @@ public struct Color
 		return RGBAf(v, v, v, a);
 	}
 
-	public @property const float rf()
+	public @property const float rf() const
 	{
 		return convertFromUByteToFloat(r);
 	}
 
-	public @property const float gf()
+	public @property void rf(float v)
+	{
+		r = convertToUByte(v);
+	}
+
+	public @property const float gf() const
 	{
 		return convertFromUByteToFloat(g);
 	}
 
-	public @property const float bf()
+	public @property void gf(float v)
+	{
+		g = convertToUByte(v);
+	}
+
+	public @property const float bf() const
 	{
 		return convertFromUByteToFloat(b);
 	}
 
-	public @property const float af()
+	public @property void bf(float v)
+	{
+		b = convertToUByte(v);
+	}
+
+	public @property const float af() const
 	{
 		return convertFromUByteToFloat(a);
 	}
 
-	public Color compose(Color bkgnd)
+	public @property void af(float v)
+	{
+		a = convertToUByte(v);
+	}
+
+	public Color compose(Color bkgnd) const
 	{
 		float foregroundOpacity = af;
 		float foregroundTransparency = 1 - foregroundOpacity;

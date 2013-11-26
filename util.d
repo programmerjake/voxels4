@@ -45,3 +45,18 @@ float convertFromUByteToFloat(ubyte v)
 {
 	return cast(float)v / 0xFF;
 }
+
+int ifloor(float v)
+{
+	if(v < 0)
+		return -cast(int)-v;
+	return cast(int)v;
+}
+
+int iceil(float v)
+{
+	if(v > 0)
+		return -cast(int)-v;
+	return cast(int)v;
+}
+
