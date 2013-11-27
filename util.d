@@ -60,3 +60,11 @@ int iceil(float v)
 	return cast(int)v;
 }
 
+template interpolate(T)
+{
+	T interpolate(T t, T a, T b)
+	{
+		return a + t * (b - a);
+	}
+}
+

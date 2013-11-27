@@ -21,6 +21,7 @@ import vector;
 import color;
 import image;
 import platform;
+import util;
 
 public struct Triangle
 {
@@ -129,15 +130,15 @@ public final class Mesh
 			int v = VERTICES_ELEMENTS_PER_TRIANGLE * triIndex;
 			int c = COLORS_ELEMENTS_PER_TRIANGLE * triIndex;
 			int t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * triIndex;
-			vertices[v++] = tri.v[0].x;
-			vertices[v++] = tri.v[0].y;
-			vertices[v++] = tri.v[0].z;
-			vertices[v++] = tri.v[1].x;
-			vertices[v++] = tri.v[1].y;
-			vertices[v++] = tri.v[1].z;
-			vertices[v++] = tri.v[2].x;
-			vertices[v++] = tri.v[2].y;
-			vertices[v++] = tri.v[2].z;
+			vertices[v++] = tri.p[0].x;
+			vertices[v++] = tri.p[0].y;
+			vertices[v++] = tri.p[0].z;
+			vertices[v++] = tri.p[1].x;
+			vertices[v++] = tri.p[1].y;
+			vertices[v++] = tri.p[1].z;
+			vertices[v++] = tri.p[2].x;
+			vertices[v++] = tri.p[2].y;
+			vertices[v++] = tri.p[2].z;
 			colors[c++] = tri.c[0].rf;
 			colors[c++] = tri.c[0].gf;
 			colors[c++] = tri.c[0].bf;
@@ -156,6 +157,48 @@ public final class Mesh
 			textureCoords[t++] = tri.v[1];
 			textureCoords[t++] = tri.u[2];
 			textureCoords[t++] = tri.v[2];
+		}
+	}
+
+	public this(TextureDescriptor texture, Triangle[] triangles = null)
+	{
+		textureInternal = texture.image;
+		if(triangles is null || triangles.length == 0)
+			return;
+		checkForSpace(triangles.length);
+		trianglesUsed = triangles.length;
+		foreach(int triIndex, Triangle tri; triangles)
+		{
+			int v = VERTICES_ELEMENTS_PER_TRIANGLE * triIndex;
+			int c = COLORS_ELEMENTS_PER_TRIANGLE * triIndex;
+			int t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * triIndex;
+			vertices[v++] = tri.p[0].x;
+			vertices[v++] = tri.p[0].y;
+			vertices[v++] = tri.p[0].z;
+			vertices[v++] = tri.p[1].x;
+			vertices[v++] = tri.p[1].y;
+			vertices[v++] = tri.p[1].z;
+			vertices[v++] = tri.p[2].x;
+			vertices[v++] = tri.p[2].y;
+			vertices[v++] = tri.p[2].z;
+			colors[c++] = tri.c[0].rf;
+			colors[c++] = tri.c[0].gf;
+			colors[c++] = tri.c[0].bf;
+			colors[c++] = tri.c[0].af;
+			colors[c++] = tri.c[1].rf;
+			colors[c++] = tri.c[1].gf;
+			colors[c++] = tri.c[1].bf;
+			colors[c++] = tri.c[1].af;
+			colors[c++] = tri.c[2].rf;
+			colors[c++] = tri.c[2].gf;
+			colors[c++] = tri.c[2].bf;
+			colors[c++] = tri.c[2].af;
+			textureCoords[t++] = interpolate(tri.u[0], texture.minU, texture.maxU);
+			textureCoords[t++] = interpolate(tri.v[0], texture.minV, texture.maxV);
+			textureCoords[t++] = interpolate(tri.u[1], texture.minU, texture.maxU);
+			textureCoords[t++] = interpolate(tri.v[1], texture.minV, texture.maxV);
+			textureCoords[t++] = interpolate(tri.u[2], texture.minU, texture.maxU);
+			textureCoords[t++] = interpolate(tri.v[2], texture.minV, texture.maxV);
 		}
 	}
 
@@ -273,6 +316,141 @@ public final class Mesh
 			glColorPointer(4, GL_FLOAT, 0, cast(void *)colors);
 			glDrawArrays(GL_TRIANGLES, 0, trianglesUsed * 3);
 		}
+	}
+	
+	public int opApply(int delegate(Triangle) dg) const
+	{
+		int retval = 0;
+		int v = 0, c = 0, t = 0;
+		Triangle tri;
+		for(int i = 0; i < trianglesUsed; i++)
+		{
+			tri.p[0].x = vertices[v++];
+			tri.p[0].y = vertices[v++];
+			tri.p[0].z = vertices[v++];
+			tri.p[1].x = vertices[v++];
+			tri.p[1].y = vertices[v++];
+			tri.p[1].z = vertices[v++];
+			tri.p[2].x = vertices[v++];
+			tri.p[2].y = vertices[v++];
+			tri.p[2].z = vertices[v++];
+			
+			tri.c[0].rf = colors[c++];
+			tri.c[0].gf = colors[c++];
+			tri.c[0].bf = colors[c++];
+			tri.c[0].af = colors[c++];
+			tri.c[1].rf = colors[c++];
+			tri.c[1].gf = colors[c++];
+			tri.c[1].bf = colors[c++];
+			tri.c[1].af = colors[c++];
+			tri.c[2].rf = colors[c++];
+			tri.c[2].gf = colors[c++];
+			tri.c[2].bf = colors[c++];
+			tri.c[2].af = colors[c++];
+			
+			tri.u[0] = textureCoords[t++];
+			tri.v[0] = textureCoords[t++];
+			tri.u[1] = textureCoords[t++];
+			tri.v[1] = textureCoords[t++];
+			tri.u[2] = textureCoords[t++];
+			tri.v[2] = textureCoords[t++];
+			retval = dg(tri);
+			if(retval != 0)
+				return retval;
+		}
+		return retval;
+	}
+	
+	public int opApply(int delegate(int, Triangle) dg) const
+	{
+		int retval = 0;
+		int v = 0, c = 0, t = 0;
+		Triangle tri;
+		for(int i = 0; i < trianglesUsed; i++)
+		{
+			tri.p[0].x = vertices[v++];
+			tri.p[0].y = vertices[v++];
+			tri.p[0].z = vertices[v++];
+			tri.p[1].x = vertices[v++];
+			tri.p[1].y = vertices[v++];
+			tri.p[1].z = vertices[v++];
+			tri.p[2].x = vertices[v++];
+			tri.p[2].y = vertices[v++];
+			tri.p[2].z = vertices[v++];
+			
+			tri.c[0].rf = colors[c++];
+			tri.c[0].gf = colors[c++];
+			tri.c[0].bf = colors[c++];
+			tri.c[0].af = colors[c++];
+			tri.c[1].rf = colors[c++];
+			tri.c[1].gf = colors[c++];
+			tri.c[1].bf = colors[c++];
+			tri.c[1].af = colors[c++];
+			tri.c[2].rf = colors[c++];
+			tri.c[2].gf = colors[c++];
+			tri.c[2].bf = colors[c++];
+			tri.c[2].af = colors[c++];
+			
+			tri.u[0] = textureCoords[t++];
+			tri.v[0] = textureCoords[t++];
+			tri.u[1] = textureCoords[t++];
+			tri.v[1] = textureCoords[t++];
+			tri.u[2] = textureCoords[t++];
+			tri.v[2] = textureCoords[t++];
+			retval = dg(i, tri);
+			if(retval != 0)
+				return retval;
+		}
+		return retval;
+	}
+	
+	public Triangle opIndex(size_t i) const
+	{
+		assert(i >= 0 && i < trianglesUsed);
+		Triangle tri;
+		int v = VERTICES_ELEMENTS_PER_TRIANGLE * i;
+		int c = COLORS_ELEMENTS_PER_TRIANGLE * i;
+		int t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * i;
+		tri.p[0].x = vertices[v++];
+		tri.p[0].y = vertices[v++];
+		tri.p[0].z = vertices[v++];
+		tri.p[1].x = vertices[v++];
+		tri.p[1].y = vertices[v++];
+		tri.p[1].z = vertices[v++];
+		tri.p[2].x = vertices[v++];
+		tri.p[2].y = vertices[v++];
+		tri.p[2].z = vertices[v++];
+		
+		tri.c[0].rf = colors[c++];
+		tri.c[0].gf = colors[c++];
+		tri.c[0].bf = colors[c++];
+		tri.c[0].af = colors[c++];
+		tri.c[1].rf = colors[c++];
+		tri.c[1].gf = colors[c++];
+		tri.c[1].bf = colors[c++];
+		tri.c[1].af = colors[c++];
+		tri.c[2].rf = colors[c++];
+		tri.c[2].gf = colors[c++];
+		tri.c[2].bf = colors[c++];
+		tri.c[2].af = colors[c++];
+		
+		tri.u[0] = textureCoords[t++];
+		tri.v[0] = textureCoords[t++];
+		tri.u[1] = textureCoords[t++];
+		tri.v[1] = textureCoords[t++];
+		tri.u[2] = textureCoords[t++];
+		tri.v[2] = textureCoords[t++];
+		return tri;
+	}
+	
+	public int opDollar(size_t arg)() const if(arg == 0)
+	{
+		return trianglesUsed;
+	}
+	
+	public @property int length() const
+	{
+		return trianglesUsed;
 	}
 }
 
