@@ -16,3 +16,16 @@
  *
  */
 module render.generate;
+import render.mesh;
+import render.texture_descriptor;
+import color;
+import vector;
+import matrix;
+import image;
+
+public struct Generate
+{
+	public @disable this();
+	
+	
+}

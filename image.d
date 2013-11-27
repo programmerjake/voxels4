@@ -170,31 +170,40 @@ final class Image
 	{
 		assert(data !is null);
 		setRowOrder(RowOrder.BottomUp);
-		if(textureValid)
+		synchronized(getSDLSyncObject())
 		{
-			glBindTexture(GL_TEXTURE_2D, this.texture);
-			return;
+			if(textureValid)
+			{
+				glBindTexture(GL_TEXTURE_2D, this.texture);
+				return;
+			}
+			if(texture == 0)
+				glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, cast(GLvoid *)data);
 		}
-		if(texture == 0)
-			glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, cast(GLvoid *)data);
 	}
 
 	public static void bindNothing()
 	{
-		glBindTexture(GL_TEXTURE_2D, 0);
+		synchronized(getSDLSyncObject())
+		{
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
 	}
 
 	public ~this()
 	{
-		if(texture != 0 && isOpenGLLoaded())
-			glDeleteTextures(1, &texture);
+		synchronized(getSDLSyncObject())
+		{
+			if(texture != 0 && isOpenGLLoaded())
+				glDeleteTextures(1, &texture);
+		}
 	}
 }
 
