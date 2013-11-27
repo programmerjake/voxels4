@@ -1,5 +1,5 @@
 DC=gdc
-SOURCES=$(wildcard *.d derelict/*/*.d derelict/*/*/*.d)
+SOURCES=$(wildcard *.d */*.d */*/*.d */*/*/*.d)
 OBJECTS=$(SOURCES:.d=.o)
 EXECUTABLE=voxels
 .PHONY : all
@@ -13,5 +13,4 @@ $(EXECUTABLE): $(OBJECTS)
 
 .PHONY : clean
 clean :
-	$(MAKE) -C derelict
 	-rm $(EXECUTABLE) $(OBJECTS)
