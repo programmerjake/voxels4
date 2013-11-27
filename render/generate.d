@@ -15,31 +15,4 @@
  * MA 02110-1301, USA.
  *
  */
-module main;
-
-import std.stdio;
-import platform;
-import event;
-import file.stream;
-import core.time;
-import std.string;
-import std.math;
-
-int main(string[] args)
-{
-    bool done = false;
-    while(!done)
-    {
-		glClearColor(abs(Display.timer % 2.0 - 1), 0, 0, 0);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		Display.flip();
-		Display.handleEvents(null);
-		static int i = 0;
-		if(++i >= Display.averageFPS)
-		{
-			i = 0;
-			Display.title = format("FPS : %g", Display.averageFPS);
-		}
-	}
-	return 0;
-}
+module render.generate;

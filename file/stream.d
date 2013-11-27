@@ -356,3 +356,4 @@ final class FileWriter : Writer
 		theFile.detach();
 	}
 }
+

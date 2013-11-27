@@ -22,10 +22,13 @@ public import derelict.opengl.gl;
 public import derelict.ogg.ogg;
 public import derelict.ogg.vorbis;
 public import derelict.sdl.image;
-public import std.string;
+private import std.string;
 private import std.file;
 private import std.path;
 private import core.runtime;
+private import core.time;
+private import core.thread;
+private import std.conv;
 
 public immutable(string) ResourcePrefix;
 
@@ -94,10 +97,75 @@ private void enforceIMG(lazy bool value, string msg)
 	enforce(value, format(msg, IMG_GetError()));
 }
 
-public void flipDisplay()
+private shared TickDuration lastFlipTime;
+
+private shared TickDuration oldLastFlipTime;
+
+public immutable float defaultFPS = 60;
+
+static this()
+{
+	lastFlipTime = TickDuration.currSystemTick;
+	immutable float fps = defaultFPS;
+	oldLastFlipTime = cast(TickDuration)(cast(Duration)*cast(TickDuration *)&lastFlipTime - dur!"hnsecs"(cast(long)(1e7 / fps)));
+}
+
+private @property double instantaneousFPS()
+{
+	synchronized(FPSSyncObject)
+	{
+		long hnsecs = (*cast(TickDuration *)&lastFlipTime - *cast(TickDuration *)&oldLastFlipTime).hnsecs();
+		if(hnsecs <= 0)
+			return averageFPSInternal;
+		return 1e7 / hnsecs;
+	}
+}
+
+private shared float averageFPSInternal = defaultFPS;
+private immutable float FPSUpdateFactor = 0.1f;
+private immutable shared Object FPSSyncObject;
+
+private @property float averageFPS()
+{
+	synchronized(FPSSyncObject)
+	{
+		return averageFPSInternal;
+	}
+}
+
+static this()
+{
+	FPSSyncObject = new immutable(Object)();
+}
+
+private void flipDisplay(float fps = defaultFPS)
 {
 	synchronized(SDLSyncObject)
 	{
+		Duration sleepTime;
+		synchronized(FPSSyncObject)
+		{
+			TickDuration curTime = TickDuration.currSystemTick;
+			sleepTime = dur!"hnsecs"(cast(long)(1e7 / fps)) - (curTime - lastFlipTime);
+			if(sleepTime <= dur!"hnsecs"(0))
+			{
+				oldLastFlipTime = lastFlipTime;
+				lastFlipTime = curTime;
+				averageFPSInternal *= 1 - FPSUpdateFactor;
+				averageFPSInternal += FPSUpdateFactor * instantaneousFPS;
+			}
+		}
+		if(sleepTime > dur!"hnsecs"(0))
+		{
+			Thread.sleep(sleepTime);
+			synchronized(FPSSyncObject)
+			{
+				oldLastFlipTime = lastFlipTime;
+				lastFlipTime = TickDuration.currSystemTick;
+				averageFPSInternal *= 1 - FPSUpdateFactor;
+				averageFPSInternal += FPSUpdateFactor * instantaneousFPS;
+			}
+		}
 		SDL_GL_SwapBuffers();
 	}
 }
@@ -544,7 +612,7 @@ private final class DefaultEventHandler : EventHandler
 	}
 }
 
-public void handleEvents(EventHandler eventHandler)
+private void handleEvents(EventHandler eventHandler)
 {
 	for(Event e = makeEvent(); e !is null; e = makeEvent())
 	{
@@ -743,4 +811,50 @@ public enum MouseButton : uint
 	X2 = SDL_BUTTON_X2MASK
 }
 
+public struct Display
+{
+	public @disable this();
 
+	public static @property string title()
+	{
+		synchronized(SDLSyncObject)
+		{
+			char* title_, icon;
+			SDL_WM_GetCaption(&title_, &icon);
+			return to!string(title_);
+		}
+	}
+
+	public static @property void title(string newTitle)
+	{
+		synchronized(SDLSyncObject)
+		{
+			SDL_WM_SetCaption(toStringz(newTitle), null);
+		}
+	}
+
+	public static void handleEvents(EventHandler eventHandler)
+	{
+		.handleEvents(eventHandler);
+	}
+
+	public static void flip(float fps = defaultFPS)
+	{
+		flipDisplay(fps);
+	}
+
+	public static @property double instantaneousFPS()
+	{
+		return .instantaneousFPS;
+	}
+
+	public static @property float averageFPS()
+	{
+		return .averageFPS;
+	}
+
+	public static @property double timer()
+	{
+		return TickDuration.currSystemTick.hnsecs / 1e7;
+	}
+}
