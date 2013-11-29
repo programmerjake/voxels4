@@ -17,7 +17,7 @@
  */
 module color;
 
-private import util;
+import util;
 
 public struct Color
 {
@@ -34,7 +34,7 @@ public struct Color
 
 	public static immutable Color TRANSPARENT = Color(0, 0, 0, TRANSPARENT_ALPHA);
 	public static immutable Color WHITE = Color(0xFF, 0xFF, 0xFF);
-	public static immutable Color LIGHT_GRAY = Color(0xC0, 0xC0, 0xC0);	
+	public static immutable Color LIGHT_GRAY = Color(0xC0, 0xC0, 0xC0);
 	public static immutable Color GRAY = Color(0x80, 0x80, 0x80);
 	public static immutable Color DARK_GRAY = Color(0x40, 0x40, 0x40);
 	public static immutable Color BLACK = Color(0, 0, 0);

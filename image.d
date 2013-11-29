@@ -17,13 +17,14 @@
  */
 module image;
 
-private import png;
-private import std.path;
-private import platform;
-private import std.exception;
+import png;
+import std.path;
+import platform;
+import std.exception;
 import color;
+import file.stream;
 
-class ImageLoadException : Exception
+class ImageLoadException : IOException
 {
 	this(string message)
 	{

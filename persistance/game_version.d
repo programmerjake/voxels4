@@ -15,56 +15,12 @@
  * MA 02110-1301, USA.
  *
  */
-module util;
+module persistance.game_version;
 
-import std.c.math;
-
-template limit(T)
+public struct GameVersion
 {
-	T limit(T v, T minV, T maxV)
-	{
-		if(v < minV)
-			return minV;
-		if(v > maxV)
-			return maxV;
-		return v;
-	}
-}
+    public @disable this();
 
-ubyte convertToUByte(int v)
-{
-	return cast(ubyte)limit(v, 0, 0xFF);
+    public immutable string VERSION = "0.4.1";
+    public immutable uint FILE_VERSION = 0;
 }
-
-ubyte convertToUByte(float v)
-{
-	return convertToUByte(cast(int)(v * 0x100));
-}
-
-float convertFromUByteToFloat(ubyte v)
-{
-	return cast(float)v / 0xFF;
-}
-
-int ifloor(float v)
-{
-	if(v < 0)
-		return -cast(int)-v;
-	return cast(int)v;
-}
-
-int iceil(float v)
-{
-	if(v > 0)
-		return -cast(int)-v;
-	return cast(int)v;
-}
-
-template interpolate(T)
-{
-	T interpolate(const T t, const T a, const T b)
-	{
-		return a + t * (b - a);
-	}
-}
-

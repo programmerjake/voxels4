@@ -17,15 +17,28 @@
  */
 module file.stream;
 
-private import std.stdio;
-private import std.string;
-private import std.math;
+import std.stdio;
+import std.string;
+import std.math;
 
-final class EOFException : Exception
+class IOException : Exception
 {
-	this()
+    public this(string msg, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(msg, file, line);
+    }
+
+    public this(Exception e)
+    {
+        super("IO Error : " ~ e.msg, e.file, e.line);
+    }
+}
+
+final class EOFException : IOException
+{
+	this(string file = __FILE__, size_t line = __LINE__)
 	{
-		super("read past end of file");
+		super("read past end of file", file, line);
 	}
 }
 
@@ -133,11 +146,13 @@ private double rawConvert(ulong v)
 	return copysign(scalbn(1.0 + 2.0 ^^ -52 * mantissa, cast(int)(exponent - 1023)), isNeg ? -1.0 : 1.0);
 }
 
-public class UTFDataFormatException : Exception
+public class UTFDataFormatException : IOException
 {
-	this(string msg)
+    public immutable ubyte theByte;
+	public this(string msg, ubyte b, string file = __FILE__, size_t line = __LINE__)
 	{
-		super(msg);
+		super(msg, file, line);
+		theByte = b;
 	}
 }
 
@@ -208,25 +223,49 @@ interface Reader
 		return rawConvert(cast(ulong)readLong());
 	}
 
-	private final wchar readUTF8CharL2(ubyte a)
+	private final int readUTF8CharL2(ubyte a)
 	{
-		assert(0, "finish");
+		ubyte b = readByte();
+		if((b & 0xC0) != 0x80)
+            throw new UTFDataFormatException("expected byte with bits 10xxxxxx", b);
+        return (a & 0x1F) << 6 | (b & 0x3F);
 	}
 
-	final wchar readUTF8Char()
+	private final int readUTF8CharL3(ubyte a)
+	{
+		ubyte b = readByte();
+		if((b & 0xC0) != 0x80)
+            throw new UTFDataFormatException("expected byte with bits 10xxxxxx", b);
+		ubyte c = readByte();
+		if((c & 0xC0) != 0x80)
+            throw new UTFDataFormatException("expected byte with bits 10xxxxxx", c);
+        return (a & 0xF) << 12 | (b & 0x3F) << 6 | (c & 0x3F);
+	}
+
+	private final int readUTF8Char()
 	{
 		ubyte a = readByte();
+		if(a == 0)
+            return -1;
 		if((a & 0x80) == 0)
-			return cast(wchar)a;
+			return cast(uint)a;
 		if((a & 0xE0) == 0xC0)
-			assert(0, "finish");
-		assert(0, "finish");
+			return readUTF8CharL2(a);
+		if((a & 0xF0) == 0xE0)
+            return readUTF8CharL3(a);
+        throw new UTFDataFormatException("unexpected byte", a);
 	}
 
 	final wstring readUTF8()
 	{
 		wstring retval = "";
-		assert(0, "finish");
+		for(;;)
+        {
+            int ch = readUTF8Char();
+            if(ch == -1)
+                return retval;
+            retval ~= cast(wchar)ch;
+        }
 	}
 }
 
@@ -293,6 +332,33 @@ interface Writer
 	{
 		write(rawConvert(v));
 	}
+	private final void writeUTF8(wchar v_in)
+	{
+	    uint v = v_in;
+	    if(v >= 1 && v <= 0x7F)
+        {
+            write(cast(ubyte)v);
+        }
+        else if(v == 0 || (v >= 0x80 && v <= 0x7FF))
+        {
+            write(cast(ubyte)((v >> 6 & 0x1F) | 0xC0));
+            write(cast(ubyte)((v & 0x3F) | 0x80));
+        }
+        else
+        {
+            write(cast(ubyte)((v >> 12 & 0xF) | 0xE0));
+            write(cast(ubyte)((v >> 6 & 0x3F) | 0x80));
+            write(cast(ubyte)((v & 0x3F) | 0x80));
+        }
+	}
+	final void write(wstring v)
+	{
+	    foreach(wchar ch; v)
+	    {
+	        writeUTF8(ch);
+	    }
+	    write(cast(ubyte)0);
+	}
 }
 
 final class FileReader : Reader
@@ -300,14 +366,32 @@ final class FileReader : Reader
 	File theFile;
 	public this(string fileName)
 	{
-		theFile = File(fileName, "rb");
+	    try
+	    {
+            theFile = File(fileName, "rb");
+	    }
+	    catch(Exception e)
+	    {
+	        throw new IOException(e);
+	    }
 	}
 
 	ubyte readByte()
 	{
 		ubyte[1] array;
-		if(theFile.rawRead(array).length == 0)
-			throw new EOFException();
+		try
+		{
+            if(theFile.rawRead(array).length == 0)
+                throw new EOFException();
+		}
+		catch(IOException e)
+		{
+		    throw e;
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 		return array[0];
 	}
 
@@ -315,17 +399,38 @@ final class FileReader : Reader
 
 	size_t read(ubyte[] bytes)
 	{
-		return theFile.rawRead(bytes).length;
+	    try
+	    {
+            return theFile.rawRead(bytes).length;
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 	}
 
 	void close()
 	{
-		theFile.detach();
+	    try
+	    {
+            theFile.detach();
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 	}
 
 	@property bool eof()
 	{
-		return theFile.eof;
+	    try
+	    {
+            return theFile.eof;
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 	}
 }
 
@@ -334,7 +439,14 @@ final class FileWriter : Writer
 	File theFile;
 	public this(string fileName)
 	{
-		theFile = File(fileName, "wb");
+	    try
+	    {
+            theFile = File(fileName, "wb");
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 	}
 
 	alias Writer.write write;
@@ -348,12 +460,26 @@ final class FileWriter : Writer
 
 	void write(ubyte[] bytes)
 	{
-		theFile.rawWrite(bytes);
+	    try
+	    {
+            theFile.rawWrite(bytes);
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 	}
 
 	void close()
 	{
-		theFile.detach();
+	    try
+	    {
+            theFile.detach();
+		}
+		catch(Exception e)
+		{
+		    throw new IOException(e);
+		}
 	}
 }
 

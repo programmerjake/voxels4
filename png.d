@@ -1,13 +1,14 @@
 module png;
 
-private import derelict.sdl.image;
-private import derelict.sdl.sdl;
-private import platform;
-private import core.exception;
-private import color;
-private import std.conv;
+import derelict.sdl.image;
+import derelict.sdl.sdl;
+import platform;
+import core.exception;
+import color;
+import std.conv;
+import file.stream;
 
-class PNGLoadException : Exception
+class PNGLoadException : IOException
 {
 	public this(string msg)
 	{

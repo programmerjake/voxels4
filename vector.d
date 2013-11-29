@@ -18,7 +18,7 @@
 module vector;
 
 public import std.math;
-private import util;
+import util;
 
 public struct Vector
 {

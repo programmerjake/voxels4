@@ -22,13 +22,13 @@ public import derelict.opengl.gl;
 public import derelict.ogg.ogg;
 public import derelict.ogg.vorbis;
 public import derelict.sdl.image;
-private import std.string;
-private import std.file;
-private import std.path;
-private import core.runtime;
-private import core.time;
-private import core.thread;
-private import std.conv;
+import std.string;
+import std.file;
+import std.path;
+import core.runtime;
+import core.time;
+import core.thread;
+import std.conv;
 
 public immutable(string) ResourcePrefix;
 

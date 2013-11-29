@@ -17,7 +17,7 @@
  */
 module event;
 
-private import platform;
+import platform;
 
 public interface EventHandler
 {

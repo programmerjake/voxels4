@@ -15,56 +15,42 @@
  * MA 02110-1301, USA.
  *
  */
-module util;
+module persistance.game_store_stream;
+import persistance.game_load_stream;
+import persistance.game_version;
 
-import std.c.math;
-
-template limit(T)
+public final class GameStoreStream : Writer
 {
-	T limit(T v, T minV, T maxV)
+    private Writer writer;
+    public static immutable auto MAGIC_STRING = GameLoadStream.MAGIC_STRING;
+    public this(Writer writer)
+    {
+        this.writer = writer;
+        assert(writer !is null);
+        scope(failure) writer.close();
+        writer.write(MAGIC_STRING);
+        writer.write(GameVersion.FILE_VERSION);
+    }
+
+	public void write(ubyte v)
 	{
-		if(v < minV)
-			return minV;
-		if(v > maxV)
-			return maxV;
-		return v;
+	    writer.write(v);
+	}
+
+	public void write(ubyte[] bytes)
+	{
+	    writer.write(bytes);
+	}
+
+	public void close()
+	{
+	    writer.close();
+	}
+
+	public void write(Vector v)
+	{
+	    write(v.x);
+	    write(v.y);
+	    write(v.z);
 	}
 }
-
-ubyte convertToUByte(int v)
-{
-	return cast(ubyte)limit(v, 0, 0xFF);
-}
-
-ubyte convertToUByte(float v)
-{
-	return convertToUByte(cast(int)(v * 0x100));
-}
-
-float convertFromUByteToFloat(ubyte v)
-{
-	return cast(float)v / 0xFF;
-}
-
-int ifloor(float v)
-{
-	if(v < 0)
-		return -cast(int)-v;
-	return cast(int)v;
-}
-
-int iceil(float v)
-{
-	if(v > 0)
-		return -cast(int)-v;
-	return cast(int)v;
-}
-
-template interpolate(T)
-{
-	T interpolate(const T t, const T a, const T b)
-	{
-		return a + t * (b - a);
-	}
-}
-
