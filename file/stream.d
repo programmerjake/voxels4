@@ -272,7 +272,7 @@ interface Reader
 interface Writer
 {
 	void write(ubyte v);
-	void write(ubyte[] bytes);
+	void write(const ubyte[] bytes);
 	/*{
 		foreach(ubyte b; bytes)
 		{
@@ -351,7 +351,7 @@ interface Writer
             write(cast(ubyte)((v & 0x3F) | 0x80));
         }
 	}
-	final void write(wstring v)
+	final void write(const wstring v)
 	{
 	    foreach(wchar ch; v)
 	    {
@@ -458,7 +458,7 @@ final class FileWriter : Writer
 		write(data);
 	}
 
-	void write(ubyte[] bytes)
+	void write(const ubyte[] bytes)
 	{
 	    try
 	    {

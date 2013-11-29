@@ -18,6 +18,8 @@
 module persistance.game_store_stream;
 import persistance.game_load_stream;
 import persistance.game_version;
+import file.stream;
+import vector;
 
 public final class GameStoreStream : Writer
 {
@@ -32,12 +34,14 @@ public final class GameStoreStream : Writer
         writer.write(GameVersion.FILE_VERSION);
     }
 
+    alias Writer.write write;
+
 	public void write(ubyte v)
 	{
 	    writer.write(v);
 	}
 
-	public void write(ubyte[] bytes)
+	public void write(const ubyte[] bytes)
 	{
 	    writer.write(bytes);
 	}

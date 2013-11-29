@@ -19,6 +19,7 @@ module persistance.game_load_stream;
 import file.stream;
 import std.math;
 import persistance.game_version;
+import vector;
 
 public final class InvalidDataValueException : IOException
 {
@@ -53,7 +54,7 @@ public final class GameLoadStream : Reader
     private Reader reader;
     public static immutable ubyte[8] MAGIC_STRING = ['V', 'o', 'x', 'e', 'l', 's', ' ', ' '];
     private immutable uint theFileVersion;
-    public GameLoadStream(Reader reader)
+    public this(Reader reader)
     {
         this.reader = reader;
         assert(reader !is null);
@@ -81,13 +82,16 @@ public final class GameLoadStream : Reader
         }
     }
 
-    public abstract @property uint fileVersion();
+    public final @property uint fileVersion()
+    {
+        return theFileVersion;
+    }
 
     public final double readFiniteDouble()
     {
         double v = readDouble();
         if(!isFinite(v))
-            throw InvalidDataValueException("read double is not finite");
+            throw new InvalidDataValueException("read double is not finite");
         return v;
     }
 
@@ -95,7 +99,7 @@ public final class GameLoadStream : Reader
     {
         float v = readFloat();
         if(!isFinite(v))
-            throw InvalidDataValueException("read float is not finite");
+            throw new InvalidDataValueException("read float is not finite");
         return v;
     }
 
