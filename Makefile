@@ -6,10 +6,10 @@ EXECUTABLE=voxels
 all: $(SOURCES) $(EXECUTABLE)
 	
 $(OBJECTS): %.o: %.d
-	$(DC) -c -Wall $< -o $@
+	$(DC) -c -g -Wall $< -o $@
              
 $(EXECUTABLE): $(OBJECTS)
-	$(DC) $(OBJECTS) -ldl -o $@
+	$(DC) -g $(OBJECTS) -ldl -o $@
 
 .PHONY : clean
 clean :

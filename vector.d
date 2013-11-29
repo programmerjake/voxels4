@@ -36,14 +36,9 @@ public struct Vector
         this.z = z;
     }
 
-    public this(ref const Vector rt)
-    {
-		this(rt.x, rt.y, rt.z);
-	}
-
 	public @property Vector dup() const
 	{
-		return Vector(this);
+		return this;
 	}
 
     public Vector opUnary(string op)() const if(op == "-")
@@ -64,13 +59,6 @@ public struct Vector
 	public bool opEquals(ref const Vector rt) const
 	{
 		return x == rt.x && y == rt.y && z == rt.z;
-	}
-
-	public void opAssign(ref const Vector rt)
-	{
-		x = rt.x;
-		y = rt.y;
-		z = rt.z;
 	}
 
 	public void opOpAssign(string op)(ref const Vector rt)

@@ -55,20 +55,137 @@ public struct Generate
 {
 	public @disable this();
 	
-	public static Mesh parallelogram(TextureDescriptor texture, Vector p1, Color c1, Vector p2, Color c2, Vector p3, Color c3, Color c4)
+	public static Mesh quadrilateral(TextureDescriptor texture, Vector p1, Color c1, Vector p2, Color c2, Vector p3, Color c3, Vector p4, Color c4)
 	{
-		Vector p4 = p2 - p1 + p3;
+		if(!texture)
+			return new Mesh();
 		immutable float u1 = texture.minU, v1 = texture.minV;
 		immutable float u2 = texture.maxU, v2 = texture.minV;
 		immutable float u3 = texture.maxU, v3 = texture.maxV;
 		immutable float u4 = texture.minU, v4 = texture.maxV;
-		Triangle[2] triangles = {Triangle(p1, c1, u1, v1, p2, c2, u2, v2, p3, c3, u3, v3), Triangle(p3, c3, u3, v3, p4, c4, u4, v4, p1, c1, u1, v1)};
+		Triangle[2] triangles = [Triangle(p1, c1, u1, v1, p2, c2, u2, v2, p3, c3, u3, v3), Triangle(p3, c3, u3, v3, p4, c4, u4, v4, p1, c1, u1, v1)];
 		return new Mesh(texture.image, triangles);
 	}
 	
-	/// make a box from <0, 0, 0> to <1, 1, 1>
-	public static Mesh unitBox(TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz)
+	public immutable Color[24] defaultBoxColors =
+	[
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE,
+		Color.WHITE
+	];
+	
+	public enum Coordinate
 	{
-		assert(0, "finish making unitBox"); // TODO: finish making unitBox
+		X = 0, Y = 1, Z = 2
+	};
+	
+	public static pure int unitBoxColorIndex(bool x, bool y, bool z, Coordinate coordinate)
+	{
+		int retval = 0;
+		retval += x ? 1 : 0;
+		retval *= 2;
+		retval += y ? 1 : 0;
+		retval *= 2;
+		retval += z ? 1 : 0;
+		retval *= 3;
+		retval += cast(int)coordinate;
+		return retval;
+	}
+	
+	/// make a box from <0, 0, 0> to <1, 1, 1>
+	public static Mesh unitBox(TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, const Color[] colors = defaultBoxColors)
+	{
+		assert(colors !is null && colors.length >= 24);
+		const Color[] c = colors[0 .. 24];
+		immutable Vector p0 = Vector.ZERO;
+		immutable Vector p1 = Vector.X;
+		immutable Vector p2 = Vector.Y;
+		immutable Vector p3 = Vector.XY;
+		immutable Vector p4 = Vector.Z;
+		immutable Vector p5 = Vector.XZ;
+		immutable Vector p6 = Vector.YZ;
+		immutable Vector p7 = Vector.XYZ;
+		Mesh retval = new Mesh();
+		if(nx)
+		{
+			retval.add(quadrilateral(nx, 
+									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.X)], 
+									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.X)],
+									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.X)],
+									 p2, c[unitBoxColorIndex(false, true, false, Coordinate.X)],
+									 ));
+		}
+		if(px)
+		{
+			retval.add(quadrilateral(px, 
+									 p3, c[unitBoxColorIndex(true, true, false, Coordinate.X)],
+									 p7, c[unitBoxColorIndex(true, true, true, Coordinate.X)],
+									 p5, c[unitBoxColorIndex(true, false, true, Coordinate.X)],
+									 p1, c[unitBoxColorIndex(true, false, false, Coordinate.X)]
+									 ));
+		}
+		if(ny)
+		{
+			retval.add(quadrilateral(ny, 
+									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.Y)], 
+									 p1, c[unitBoxColorIndex(true, false, false, Coordinate.Y)],
+									 p5, c[unitBoxColorIndex(true, false, true, Coordinate.Y)],
+									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.Y)]
+									 ));
+		}
+		if(py)
+		{
+			retval.add(quadrilateral(py, 
+									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.Y)], 
+									 p7, c[unitBoxColorIndex(true, true, true, Coordinate.Y)],
+									 p3, c[unitBoxColorIndex(true, true, false, Coordinate.Y)],
+									 p2, c[unitBoxColorIndex(false, true, false, Coordinate.Y)]
+									 ));
+		}
+		if(nz)
+		{
+			retval.add(quadrilateral(nz, 
+									 p1, c[unitBoxColorIndex(true, false, false, Coordinate.Z)], 
+									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.Z)],
+									 p2, c[unitBoxColorIndex(false, true, false, Coordinate.Z)],
+									 p3, c[unitBoxColorIndex(true, true, false, Coordinate.Z)],
+									 ));
+		}
+		if(pz)
+		{
+			retval.add(quadrilateral(pz, 
+									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.Z)], 
+									 p5, c[unitBoxColorIndex(true, false, true, Coordinate.Z)],
+									 p7, c[unitBoxColorIndex(true, true, true, Coordinate.Z)],
+									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.Z)],
+									 ));
+		}
+		return retval;
 	}
 }

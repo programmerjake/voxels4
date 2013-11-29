@@ -62,7 +62,7 @@ int iceil(float v)
 
 template interpolate(T)
 {
-	T interpolate(T t, T a, T b)
+	T interpolate(const T t, const T a, const T b)
 	{
 		return a + t * (b - a);
 	}

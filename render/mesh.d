@@ -22,6 +22,8 @@ import color;
 import image;
 import platform;
 import util;
+import render.texture_descriptor;
+import std.string;
 
 public struct Triangle
 {
@@ -30,10 +32,10 @@ public struct Triangle
 	float[3] u, v;
 	public this(Vector p1, Color c1, float u1, float v1, Vector p2, Color c2, float u2, float v2, Vector p3, Color c3, float u3, float v3)
 	{
-		p[] = {p1, p2, p3};
-		c[] = {c1, c2, c3};		
-		u[] = {u1, u2, u3};
-		v[] = {v1, v2, v3};
+		p[] = [p1, p2, p3];
+		c[] = [c1, c2, c3];
+		u[] = [u1, u2, u3];
+		v[] = [v1, v2, v3];
 	}
 }
 
@@ -50,7 +52,7 @@ public struct TransformedMesh
 	public this(TransformedMesh mesh, Matrix transform)
 	{
 		this.mesh = mesh.mesh;
-		this.transform = mesh.transform ~ transform;
+		this.transform = mesh.transform.concat(transform);
 	}
 }
 
@@ -81,18 +83,23 @@ public final class Mesh
     public static immutable int VERTICES_ELEMENTS_PER_TRIANGLE = 3 * 3;
     public static immutable int TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE = 2 * 3;
     public static immutable int COLORS_ELEMENTS_PER_TRIANGLE = 4 * 3;
+    private float[] expandArray(float[] a, int newSize)
+    {
+        assert(a is null || a.length <= newSize);
+        if(a is null)
+            return new float[newSize];
+        float[] retval = new float[newSize];
+        for(int i = 0; i < a.length; i++)
+            retval[i] = a[i];
+        return retval;
+    }
+
     private void expandArrays(int newSize)
     {
-		if(vertices is null)
-		{
-			vertices = new float[VERTICES_ELEMENTS_PER_TRIANGLE * newSize];
-			textureCoords = new float[TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * newSize];
-			colors = new float[COLORS_ELEMENTS_PER_TRIANGLE * newSize];
-			return;
-		}
-		vertices.length = VERTICES_ELEMENTS_PER_TRIANGLE * newSize;
-		textureCoords.length = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * newSize;
-		colors.length = COLORS_ELEMENTS_PER_TRIANGLE * newSize;
+		vertices = expandArray(vertices, VERTICES_ELEMENTS_PER_TRIANGLE * newSize);
+		textureCoords = expandArray(textureCoords, TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * newSize);
+		colors = expandArray(colors, COLORS_ELEMENTS_PER_TRIANGLE * newSize);
+		trianglesAllocated = newSize;
 	}
 
 	private int getExpandedAmount(int increment)
@@ -117,12 +124,13 @@ public final class Mesh
 	public this()
 	{
 	}
-	
+
 	public this(Image texture, Triangle[] triangles = null)
 	{
 		textureInternal = texture;
 		if(triangles is null || triangles.length == 0)
 			return;
+        trianglesAllocated = 0;
 		checkForSpace(triangles.length);
 		trianglesUsed = triangles.length;
 		foreach(int triIndex, Triangle tri; triangles)
@@ -165,6 +173,7 @@ public final class Mesh
 		textureInternal = texture.image;
 		if(triangles is null || triangles.length == 0)
 			return;
+        trianglesAllocated = 0;
 		checkForSpace(triangles.length);
 		trianglesUsed = triangles.length;
 		foreach(int triIndex, Triangle tri; triangles)
@@ -206,6 +215,7 @@ public final class Mesh
 	{
 		sealed = false;
 		textureInternal = null;
+        trianglesAllocated = 0;
 		if(rt.mesh !is null)
 		{
 			textureInternal = rt.mesh.textureInternal;
@@ -242,13 +252,15 @@ public final class Mesh
 			throw new SealedException();
 		if(mesh.mesh is null || mesh.mesh.trianglesUsed <= 0)
 			return this;
-        if(this.texture !is mesh.mesh.texture)
-            throw new TextureNotSameException();
+		if(this.texture is null)
+			this.textureInternal = mesh.mesh.texture;
+		else if(this.texture !is mesh.mesh.texture)
+            throw new ImageNotSameException();
         checkForSpace(mesh.mesh.trianglesUsed);
         immutable int finalSize = trianglesUsed + mesh.mesh.trianglesUsed;
         for(int i = trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * VERTICES_ELEMENTS_PER_TRIANGLE; i += 3, j += 3)
         {
-			Vector v = rt.transform.apply(Vector(mesh.mesh.vertices[j], mesh.mesh.vertices[j + 1], mesh.mesh.vertices[j + 2]));
+			Vector v = mesh.transform.apply(Vector(mesh.mesh.vertices[j], mesh.mesh.vertices[j + 1], mesh.mesh.vertices[j + 2]));
 			vertices[i] = v.x;
 			vertices[i + 1] = v.y;
 			vertices[i + 2] = v.z;
@@ -265,8 +277,10 @@ public final class Mesh
 			throw new SealedException();
 		if(mesh is null || mesh.trianglesUsed <= 0)
 			return this;
-        if(this.texture !is mesh.texture)
-            throw new TextureNotSameException();
+        if(this.texture is null)
+			this.textureInternal = mesh.texture;
+		else if(this.texture !is mesh.texture)
+            throw new ImageNotSameException();
         checkForSpace(mesh.trianglesUsed);
         immutable int finalSize = trianglesUsed + mesh.trianglesUsed;
 		vertices[trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE .. finalSize * VERTICES_ELEMENTS_PER_TRIANGLE] = mesh.vertices[0 .. mesh.trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE];
@@ -275,14 +289,14 @@ public final class Mesh
 		trianglesUsed = finalSize;
 		return this;
 	}
-	
+
 	public Mesh seal()
 	{
 		sealed = true;
 		return this;
 	}
 
-    public Mesh transform(in Matrix transform)
+    public Mesh transform(Matrix transform)
     {
         if(this.sealed)
             throw new SealedException();
@@ -291,34 +305,47 @@ public final class Mesh
             float x = this.vertices[i];
             float y = this.vertices[i + 1];
             float z = this.vertices[i + 2];
-            this.vertices[i] = x * transform.x00 + y * transform.x10 + z
-                    * transform.x20 + transform.x30;
-            this.vertices[i++] = x * transform.x01 + y * transform.x11 + z
-                    * transform.x21 + transform.x31;
-            this.vertices[i++] = x * transform.x02 + y * transform.x12 + z
-                    * transform.x22 + transform.x32;
+            Vector v = Vector(x, y, z);
+            v = transform.apply(v);
+            this.vertices[i++] = v.x;
+            this.vertices[i++] = v.y;
+            this.vertices[i++] = v.z;
         }
         return this;
     }
-    
+
     package void render()
     {
-		if(trianglesUsed <= 0)
+		if(trianglesUsed <= 0 || texture is null)
 			return;
 		synchronized(getSDLSyncObject())
 		{
 			texture.bind();
-			glEnableClientState(GL_COLOR_ARRAY);
-			glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glVertexPointer(3, GL_FLOAT, 0, cast(void *)vertices);
-			glTexCoordPointer(2, GL_FLOAT, 0, cast(void *)textureCoords);
-			glColorPointer(4, GL_FLOAT, 0, cast(void *)colors);
-			glDrawArrays(GL_TRIANGLES, 0, trianglesUsed * 3);
+			static if(true)
+			{
+				glVertexPointer(3, GL_FLOAT, 0, cast(void *)vertices);
+				glTexCoordPointer(2, GL_FLOAT, 0, cast(void *)textureCoords);
+				glColorPointer(4, GL_FLOAT, 0, cast(void *)colors);
+				glDrawArrays(GL_TRIANGLES, 0, trianglesUsed * 3);
+			}
+			else
+			{
+				glBegin(GL_TRIANGLES);
+				foreach(Triangle t; this)
+				{
+					for(int i = 0; i < 3; i++)
+					{
+						glTexCoord2f(t.u[i], t.v[i]);
+						glColor4f(t.c[i].rf, t.c[i].gf, t.c[i].bf, t.c[i].af);
+						glVertex3f(t.p[i].x, t.p[i].y, t.p[i].z);
+					}
+				}
+				glEnd();
+			}
 		}
 	}
-	
-	public int opApply(int delegate(Triangle) dg) const
+
+	public int opApply(int delegate(ref Triangle) dg) const
 	{
 		int retval = 0;
 		int v = 0, c = 0, t = 0;
@@ -334,7 +361,7 @@ public final class Mesh
 			tri.p[2].x = vertices[v++];
 			tri.p[2].y = vertices[v++];
 			tri.p[2].z = vertices[v++];
-			
+
 			tri.c[0].rf = colors[c++];
 			tri.c[0].gf = colors[c++];
 			tri.c[0].bf = colors[c++];
@@ -347,7 +374,7 @@ public final class Mesh
 			tri.c[2].gf = colors[c++];
 			tri.c[2].bf = colors[c++];
 			tri.c[2].af = colors[c++];
-			
+
 			tri.u[0] = textureCoords[t++];
 			tri.v[0] = textureCoords[t++];
 			tri.u[1] = textureCoords[t++];
@@ -360,8 +387,8 @@ public final class Mesh
 		}
 		return retval;
 	}
-	
-	public int opApply(int delegate(int, Triangle) dg) const
+
+	public int opApply(int delegate(ref int, ref Triangle) dg) const
 	{
 		int retval = 0;
 		int v = 0, c = 0, t = 0;
@@ -377,7 +404,7 @@ public final class Mesh
 			tri.p[2].x = vertices[v++];
 			tri.p[2].y = vertices[v++];
 			tri.p[2].z = vertices[v++];
-			
+
 			tri.c[0].rf = colors[c++];
 			tri.c[0].gf = colors[c++];
 			tri.c[0].bf = colors[c++];
@@ -390,20 +417,21 @@ public final class Mesh
 			tri.c[2].gf = colors[c++];
 			tri.c[2].bf = colors[c++];
 			tri.c[2].af = colors[c++];
-			
+
 			tri.u[0] = textureCoords[t++];
 			tri.v[0] = textureCoords[t++];
 			tri.u[1] = textureCoords[t++];
 			tri.v[1] = textureCoords[t++];
 			tri.u[2] = textureCoords[t++];
 			tri.v[2] = textureCoords[t++];
-			retval = dg(i, tri);
+			int index = i;
+			retval = dg(index, tri);
 			if(retval != 0)
 				return retval;
 		}
 		return retval;
 	}
-	
+
 	public Triangle opIndex(size_t i) const
 	{
 		assert(i >= 0 && i < trianglesUsed);
@@ -420,7 +448,7 @@ public final class Mesh
 		tri.p[2].x = vertices[v++];
 		tri.p[2].y = vertices[v++];
 		tri.p[2].z = vertices[v++];
-		
+
 		tri.c[0].rf = colors[c++];
 		tri.c[0].gf = colors[c++];
 		tri.c[0].bf = colors[c++];
@@ -433,7 +461,7 @@ public final class Mesh
 		tri.c[2].gf = colors[c++];
 		tri.c[2].bf = colors[c++];
 		tri.c[2].af = colors[c++];
-		
+
 		tri.u[0] = textureCoords[t++];
 		tri.v[0] = textureCoords[t++];
 		tri.u[1] = textureCoords[t++];
@@ -442,12 +470,12 @@ public final class Mesh
 		tri.v[2] = textureCoords[t++];
 		return tri;
 	}
-	
+
 	public int opDollar(size_t arg)() const if(arg == 0)
 	{
 		return trianglesUsed;
 	}
-	
+
 	public @property int length() const
 	{
 		return trianglesUsed;
@@ -457,7 +485,7 @@ public final class Mesh
 public struct Renderer
 {
 	public @disable this();
-	
+
 	public static void render(Mesh mesh)
 	{
 		mesh.render();

@@ -13,3 +13,11 @@
 *.a
 
 *~
+
+voxels
+voxels4
+voxels4-debug
+*.cbp
+*.depend
+*.layout
+

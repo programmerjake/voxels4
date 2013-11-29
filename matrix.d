@@ -304,7 +304,7 @@ public struct Matrix
                                   * factor);
     }
 
-    public Matrix opBinary(string op)(Matrix rt) const if(op == "~")
+    public Matrix concat(Matrix rt) const
     {
         return Matrix(this.x00 * rt.x00 + this.x01 * rt.x10 + this.x02
                 * rt.x20, this.x10 * rt.x00 + this.x11 * rt.x10 + this.x12
@@ -366,7 +366,7 @@ public struct Matrix
     public static Matrix setToThetaPhi(double theta, double phi)
     {
         Matrix t = Matrix.rotateX(-phi);
-        return rotateY(theta) ~ t;
+        return rotateY(theta).concat(t);
     }
 }
 

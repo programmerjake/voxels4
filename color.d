@@ -33,6 +33,17 @@ public struct Color
 	}
 
 	public static immutable Color TRANSPARENT = Color(0, 0, 0, TRANSPARENT_ALPHA);
+	public static immutable Color WHITE = Color(0xFF, 0xFF, 0xFF);
+	public static immutable Color LIGHT_GRAY = Color(0xC0, 0xC0, 0xC0);	
+	public static immutable Color GRAY = Color(0x80, 0x80, 0x80);
+	public static immutable Color DARK_GRAY = Color(0x40, 0x40, 0x40);
+	public static immutable Color BLACK = Color(0, 0, 0);
+	public static immutable Color CYAN = Color(0, 0xFF, 0xFF);
+	public static immutable Color MAGENTA = Color(0xFF, 0, 0xFF);
+	public static immutable Color BLUE = Color(0, 0, 0xFF);
+	public static immutable Color YELLOW = Color(0xFF, 0xFF, 0);
+	public static immutable Color GREEN = Color(0, 0xFF, 0);
+	public static immutable Color RED = Color(0xFF, 0, 0);
 
 	public static Color RGBi(int r, int g, int b)
 	{

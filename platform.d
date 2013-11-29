@@ -63,6 +63,8 @@ public bool isOpenGLLoaded()
 
 private immutable int ImageDecoderFlags = IMG_INIT_PNG;
 
+private immutable int xResInternal = 1024, yResInternal = 768;
+
 static this()
 {
 	DerelictSDL.load();
@@ -78,7 +80,7 @@ static this()
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1), "can't call SDL_GL_SetAttribute : %s");
-	videoSurface = cast(shared SDL_Surface *)SDL_SetVideoMode(640, 480, 32, SDL_OPENGL);
+	videoSurface = cast(shared SDL_Surface *)SDL_SetVideoMode(xResInternal, yResInternal, 32, SDL_OPENGL);
 	enforceSDL(videoSurface != null, "can't set video mode : %s");
 	SDL_EnableUNICODE(1);
 	enforceSDL(0 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL), "can't call SDL_EnableKeyRepeat : %s");
@@ -856,5 +858,61 @@ public struct Display
 	public static @property double timer()
 	{
 		return TickDuration.currSystemTick.hnsecs / 1e7;
+	}
+
+	private static float scaleXInternal = 1.0, scaleYInternal = 1.0;
+
+	public static @property int width()
+	{
+		return xResInternal;
+	}
+
+	public static @property int height()
+	{
+		return yResInternal;
+	}
+
+	public static @property float scaleX()
+	{
+		return scaleXInternal;
+	}
+
+	public static @property float scaleY()
+	{
+		return scaleYInternal;
+	}
+
+	public static void initFrame()
+	{
+		if(width > height)
+		{
+			scaleXInternal = cast(float)width / height;
+			scaleYInternal = 1.0;
+		}
+		else
+		{
+			scaleXInternal = 1.0;
+			scaleYInternal = cast(float)height / width;
+		}
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_TEXTURE_2D);
+        glEnable(GL_ALPHA_TEST);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glCullFace(GL_BACK);
+        glFrontFace(GL_CCW);
+        glAlphaFunc(GL_LESS, 0.95f);
+        glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+        glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+        glViewport(0, 0, width, height);
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        immutable float minDistance = 5e-2f, maxDistance = 100f;
+        glFrustum(-minDistance * scaleX, minDistance * scaleX, -minDistance
+                * scaleY, minDistance * scaleY, minDistance, maxDistance);
+        glEnableClientState(GL_COLOR_ARRAY);
+        glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        glEnableClientState(GL_VERTEX_ARRAY);
 	}
 }
