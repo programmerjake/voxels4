@@ -20,6 +20,7 @@ import file.stream;
 import std.math;
 import persistance.game_version;
 import vector;
+import block.block;
 
 public final class InvalidDataValueException : IOException
 {
@@ -56,6 +57,7 @@ public final class GameLoadStream : Reader
     private immutable uint theFileVersion;
     public this(Reader reader)
     {
+        blockDescriptors = new BlockDescriptor[1];
         this.reader = reader;
         assert(reader !is null);
         scope(failure) reader.close();
@@ -219,5 +221,23 @@ public final class GameLoadStream : Reader
 	    float y = readFiniteFloat();
 	    float z = readFiniteFloat();
 	    return Vector(x, y, z);
+	}
+
+	private BlockDescriptor[] blockDescriptors;
+
+	public BlockDescriptor readBlockDescriptor()
+	{
+	    uint index = readRangeLimitedUnsignedInt(0, blockDescriptors.length);
+	    if(index == 0)
+        {
+            string name = cast(string)readUTF8();
+            BlockDescriptor bd = BlockDescriptor.getBlock(name);
+            if(bd is null)
+                throw new InvalidDataValueException("block type not found");
+            blockDescriptors ~= [bd];
+            return bd;
+        }
+        index--;
+        return blockDescriptors[index];
 	}
 }

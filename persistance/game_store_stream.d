@@ -20,6 +20,7 @@ import persistance.game_load_stream;
 import persistance.game_version;
 import file.stream;
 import vector;
+import block.block;
 
 public final class GameStoreStream : Writer
 {
@@ -56,5 +57,19 @@ public final class GameStoreStream : Writer
 	    write(v.x);
 	    write(v.y);
 	    write(v.z);
+	}
+
+	private uint[string] blockDescriptors;
+	private uint nextBlockDescriptor = 1;
+
+	public void write(BlockDescriptor bd)
+	{
+	    uint index = blockDescriptors.get(bd.name, 0);
+	    write(index);
+	    if(index == 0)
+        {
+            write(cast(wstring)bd.name);
+            blockDescriptors[bd.name] = nextBlockDescriptor++;
+        }
 	}
 }
