@@ -397,7 +397,7 @@ private KeyboardKey translateKey(SDLKey input)
 	case SDLK_F13:
 	case SDLK_F14:
 	case SDLK_F15:
-		// TODO: implement keys
+		// TODO (jacob#): implement keys
 		return KeyboardKey.Unknown;
 	case SDLK_NUMLOCK:
 		return KeyboardKey.NumLock;
@@ -429,7 +429,7 @@ private KeyboardKey translateKey(SDLKey input)
 		return KeyboardKey.Mode;
 	case SDLK_COMPOSE:
 	case SDLK_HELP:
-		// TODO: implement keys
+		// TODO (jacob#): implement keys
 		return KeyboardKey.Unknown;
 	case SDLK_PRINT:
 		return KeyboardKey.PrintScreen;
@@ -442,7 +442,7 @@ private KeyboardKey translateKey(SDLKey input)
 	case SDLK_POWER:
 	case SDLK_EURO:
 	case SDLK_UNDO:
-		// TODO: implement keys
+		// TODO (jacob#): implement keys
 		return KeyboardKey.Unknown;
 	default:
 		return KeyboardKey.Unknown;
@@ -505,7 +505,7 @@ private Event makeEvent()
 			switch(SDLEvent.type)
 			{
 			case SDL_ACTIVEEVENT:
-				// TODO: handle SDL_ACTIVEEVENT
+				// TODO (jacob#): handle SDL_ACTIVEEVENT
 				break;
 			case SDL_KEYDOWN:
 			{
@@ -540,18 +540,18 @@ private Event makeEvent()
 			case SDL_JOYHATMOTION:
 			case SDL_JOYBUTTONDOWN:
 			case SDL_JOYBUTTONUP:
-				//TODO: handle joysticks
+				//TODO (jacob#): handle joysticks
 				break;
 			case SDL_QUIT:
 				return new QuitEvent();
 			case SDL_SYSWMEVENT:
-				//TODO: handle SDL_SYSWMEVENT
+				//TODO (jacob#): handle SDL_SYSWMEVENT
 				break;
 			case SDL_VIDEORESIZE:
-				//TODO: handle SDL_VIDEORESIZE
+				//TODO (jacob#): handle SDL_VIDEORESIZE
 				break;
 			case SDL_VIDEOEXPOSE:
-				//TODO: handle SDL_VIDEOEXPOSE
+				//TODO (jacob#): handle SDL_VIDEOEXPOSE
 				break;
 			case SDL_EVENT_RESERVEDA:
 			case SDL_EVENT_RESERVEDB:

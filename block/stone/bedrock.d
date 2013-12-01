@@ -15,28 +15,41 @@
  * MA 02110-1301, USA.
  *
  */
-module main;
+module block.stone.bedrock;
+import block.block;
+import block.stone.stone;
+import resource.texture_atlas;
+import persistance.game_load_stream;
+import render.texture_descriptor;
+import world.block_face;
 
-import platform;
-import event;
-import std.string;
-
-int main(string[] args)
+public final class Bedrock : StoneType
 {
-    bool done = false;
-    while(!done)
+    private this()
     {
-		glClearColor(0, 0, 0, 0);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-		Display.initFrame();
-		Display.flip();
-		Display.handleEvents(null);
-		static int i = 0;
-		if(++i >= Display.averageFPS)
-		{
-			i = 0;
-			Display.title = format("FPS : %g", Display.averageFPS);
-		}
-	}
-	return 0;
+        super("Bedrock");
+    }
+
+    private static Bedrock BEDROCK_;
+
+    static this()
+    {
+        BEDROCK_ = new Bedrock();
+    }
+
+    public static @property BEDROCK()
+    {
+        return BEDROCK_;
+    }
+
+    protected override BlockData readInternal(GameLoadStream gls)
+    {
+        return BlockData(BEDROCK);
+    }
+
+    protected override TextureDescriptor getFaceTexture(BlockFace f)
+    {
+        return TextureAtlas.Bedrock.td;
+    }
+
 }

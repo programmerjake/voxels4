@@ -21,6 +21,7 @@ import persistance.game_store_stream;
 import world.block_face;
 import world.world;
 import render.mesh;
+import block.air;
 
 public struct BlockData
 {
@@ -28,27 +29,36 @@ public struct BlockData
     uint data = 0;
     void * extraData = null;
     ubyte sunlight = 0, scatteredSunlight = 0, light = 0;
+    public this(BlockDescriptor descriptor)
+    {
+        this.descriptor = descriptor;
+    }
+    public @property bool good() const
+    {
+        return descriptor !is null;
+    }
 }
 
 public abstract class BlockDescriptor
 {
-    public this()
+    public immutable string name;
+    public this(string name)
     {
+        this.name = name;
         addToBlockList(this);
     }
 
-    public abstract TransformedMesh getDrawMesh(ref BlockData data);
-    public abstract @property string name();
+    public abstract TransformedMesh getDrawMesh(BlockPosition pos);
     protected abstract BlockData readInternal(GameLoadStream gls);
-    public abstract bool graphicsChanged(ref BlockData data, BlockIterator pos);
-    public abstract bool isSideBlocked(ref BlockData data, BlockFace face);
-    public abstract bool isOpaque(ref BlockData data);
-    protected uint getEmittedLight(ref BlockData data)
+    public abstract bool graphicsChanges(BlockPosition pos);
+    public abstract bool isSideBlocked(BlockData data, BlockFace face);
+    public abstract bool isOpaque(BlockData data);
+    protected uint getEmittedLight(BlockData data)
     {
         return 0;
     }
 
-    public static final BlockData read(GameLoadStream gls)
+    public static BlockData read(GameLoadStream gls)
     {
         return gls.readBlockDescriptor().readInternal(gls);
     }
@@ -73,5 +83,13 @@ public abstract class BlockDescriptor
     {
         assert(index >= 0 && index < blockList.length);
         return blockList[index];
+    }
+    public static bool isSideBlocked(BlockPosition pos, BlockFace f)
+    {
+        pos.move(f);
+        BlockData bd = pos.get();
+        if(bd.good)
+            return bd.descriptor.isSideBlocked(bd, f);
+        return true;
     }
 }

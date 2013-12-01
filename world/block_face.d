@@ -61,3 +61,22 @@ public @property int dz(const BlockFace f)
     }
 }
 
+public BlockFace invert(BlockFace f)
+{
+    final switch(f)
+    {
+    case BlockFace.NX:
+        return BlockFace.PX;
+    case BlockFace.NY:
+        return BlockFace.PY;
+    case BlockFace.NZ:
+        return BlockFace.PZ;
+    case BlockFace.PX:
+        return BlockFace.NX;
+    case BlockFace.PY:
+        return BlockFace.NY;
+    case BlockFace.PZ:
+        return BlockFace.NZ;
+    }
+}
+
