@@ -363,7 +363,7 @@ public struct Matrix
     public static immutable Matrix ROTATEZ_PI = rotateZ(PI);
     public static immutable Matrix ROTATEZ_3_PI_2 = rotateZ(3 * PI / 2);
 
-    public static Matrix setToThetaPhi(double theta, double phi)
+    public static Matrix thetaPhi(double theta, double phi)
     {
         Matrix t = Matrix.rotateX(-phi);
         return rotateY(theta).concat(t);

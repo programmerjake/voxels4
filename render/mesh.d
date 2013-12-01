@@ -79,11 +79,11 @@ public final class Mesh
 	}
 	private bool sealed = false;
     private float[] vertices = null, textureCoords = null, colors = null;
-    private int trianglesUsed = 0, trianglesAllocated = 0;
+    private size_t trianglesUsed = 0, trianglesAllocated = 0;
     public static immutable int VERTICES_ELEMENTS_PER_TRIANGLE = 3 * 3;
     public static immutable int TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE = 2 * 3;
     public static immutable int COLORS_ELEMENTS_PER_TRIANGLE = 4 * 3;
-    private float[] expandArray(float[] a, int newSize)
+    private float[] expandArray(float[] a, size_t newSize)
     {
         assert(a is null || a.length <= newSize);
         if(a is null)
@@ -94,7 +94,7 @@ public final class Mesh
         return retval;
     }
 
-    private void expandArrays(int newSize)
+    private void expandArrays(size_t newSize)
     {
 		vertices = expandArray(vertices, VERTICES_ELEMENTS_PER_TRIANGLE * newSize);
 		textureCoords = expandArray(textureCoords, TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * newSize);
@@ -102,12 +102,12 @@ public final class Mesh
 		trianglesAllocated = newSize;
 	}
 
-	private int getExpandedAmount(int increment)
+	private size_t getExpandedAmount(size_t increment)
 	{
 		return trianglesAllocated + increment + 16 + trianglesAllocated / 8 + increment / 2;
 	}
 
-	private void checkForSpace(int increment)
+	private void checkForSpace(size_t increment)
 	{
 		if(trianglesUsed + increment <= trianglesAllocated)
 			return;
@@ -224,8 +224,8 @@ public final class Mesh
 			colors = dupFloatArray(rt.mesh.colors);
 			trianglesAllocated = rt.mesh.trianglesAllocated;
 			trianglesUsed = rt.mesh.trianglesUsed;
-			immutable int limit = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
-			for(int i = 0; i < limit; i += 3)
+			immutable size_t limit = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+			for(size_t i = 0; i < limit; i += 3)
 			{
 				Vector v = rt.transform.apply(Vector(vertices[i], vertices[i + 1], vertices[i + 2]));
 				vertices[i] = v.x;
@@ -257,8 +257,8 @@ public final class Mesh
 		else if(this.texture !is mesh.mesh.texture)
             throw new ImageNotSameException();
         checkForSpace(mesh.mesh.trianglesUsed);
-        immutable int finalSize = trianglesUsed + mesh.mesh.trianglesUsed;
-        for(int i = trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * VERTICES_ELEMENTS_PER_TRIANGLE; i += 3, j += 3)
+        immutable size_t finalSize = trianglesUsed + mesh.mesh.trianglesUsed;
+        for(size_t i = trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * VERTICES_ELEMENTS_PER_TRIANGLE; i += 3, j += 3)
         {
 			Vector v = mesh.transform.apply(Vector(mesh.mesh.vertices[j], mesh.mesh.vertices[j + 1], mesh.mesh.vertices[j + 2]));
 			vertices[i] = v.x;
@@ -282,7 +282,7 @@ public final class Mesh
 		else if(this.texture !is mesh.texture)
             throw new ImageNotSameException();
         checkForSpace(mesh.trianglesUsed);
-        immutable int finalSize = trianglesUsed + mesh.trianglesUsed;
+        immutable size_t finalSize = trianglesUsed + mesh.trianglesUsed;
 		vertices[trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE .. finalSize * VERTICES_ELEMENTS_PER_TRIANGLE] = mesh.vertices[0 .. mesh.trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE];
 		textureCoords[trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE .. finalSize * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE] = mesh.textureCoords[0 .. mesh.trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE];
 		colors[trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE .. finalSize * COLORS_ELEMENTS_PER_TRIANGLE] = mesh.colors[0 .. mesh.trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE];
@@ -326,7 +326,7 @@ public final class Mesh
 				glVertexPointer(3, GL_FLOAT, 0, cast(void *)vertices);
 				glTexCoordPointer(2, GL_FLOAT, 0, cast(void *)textureCoords);
 				glColorPointer(4, GL_FLOAT, 0, cast(void *)colors);
-				glDrawArrays(GL_TRIANGLES, 0, trianglesUsed * 3);
+				glDrawArrays(GL_TRIANGLES, 0, cast(GLint)trianglesUsed * 3);
 			}
 			else
 			{
@@ -348,9 +348,9 @@ public final class Mesh
 	public int opApply(int delegate(ref Triangle) dg) const
 	{
 		int retval = 0;
-		int v = 0, c = 0, t = 0;
+		size_t v = 0, c = 0, t = 0;
 		Triangle tri;
-		for(int i = 0; i < trianglesUsed; i++)
+		for(size_t i = 0; i < trianglesUsed; i++)
 		{
 			tri.p[0].x = vertices[v++];
 			tri.p[0].y = vertices[v++];
@@ -391,9 +391,9 @@ public final class Mesh
 	public int opApply(int delegate(ref int, ref Triangle) dg) const
 	{
 		int retval = 0;
-		int v = 0, c = 0, t = 0;
+		size_t v = 0, c = 0, t = 0;
 		Triangle tri;
-		for(int i = 0; i < trianglesUsed; i++)
+		for(size_t i = 0; i < trianglesUsed; i++)
 		{
 			tri.p[0].x = vertices[v++];
 			tri.p[0].y = vertices[v++];
@@ -424,7 +424,7 @@ public final class Mesh
 			tri.v[1] = textureCoords[t++];
 			tri.u[2] = textureCoords[t++];
 			tri.v[2] = textureCoords[t++];
-			int index = i;
+			int index = cast(int)i;
 			retval = dg(index, tri);
 			if(retval != 0)
 				return retval;
@@ -436,9 +436,9 @@ public final class Mesh
 	{
 		assert(i >= 0 && i < trianglesUsed);
 		Triangle tri;
-		int v = VERTICES_ELEMENTS_PER_TRIANGLE * i;
-		int c = COLORS_ELEMENTS_PER_TRIANGLE * i;
-		int t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * i;
+		size_t v = VERTICES_ELEMENTS_PER_TRIANGLE * i;
+		size_t c = COLORS_ELEMENTS_PER_TRIANGLE * i;
+		size_t t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * i;
 		tri.p[0].x = vertices[v++];
 		tri.p[0].y = vertices[v++];
 		tri.p[0].z = vertices[v++];
@@ -471,14 +471,22 @@ public final class Mesh
 		return tri;
 	}
 
-	public int opDollar(size_t arg)() const if(arg == 0)
+	public size_t opDollar(size_t arg)() const if(arg == 0)
 	{
 		return trianglesUsed;
 	}
 
-	public @property int length() const
+	public @property size_t length() const
 	{
 		return trianglesUsed;
+	}
+
+	private static Mesh EMPTY_;
+	public static @property Mesh EMPTY()
+	{
+        if(EMPTY_ is null)
+            EMPTY_ = (new Mesh()).seal();
+        return EMPTY_;
 	}
 }
 

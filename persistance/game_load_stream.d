@@ -227,7 +227,7 @@ public final class GameLoadStream : Reader
 
 	public BlockDescriptor readBlockDescriptor()
 	{
-	    uint index = readRangeLimitedUnsignedInt(0, blockDescriptors.length);
+	    uint index = readRangeLimitedUnsignedInt(0, cast(uint)blockDescriptors.length);
 	    if(index == 0)
         {
             string name = cast(string)readUTF8();

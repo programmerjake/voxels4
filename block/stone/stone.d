@@ -22,6 +22,8 @@ import render.generate;
 import render.texture_descriptor;
 import world.world;
 import world.block_face;
+import persistance.game_load_stream;
+import resource.texture_atlas;
 
 public abstract class StoneType : BlockDescriptor
 {
@@ -66,12 +68,12 @@ public abstract class StoneType : BlockDescriptor
 
     public override TransformedMesh getDrawMesh(BlockPosition pos)
     {
-        bool nx = BlockDescriptor.isSideBlocked(pos, BlockFace.NX);
-        bool px = BlockDescriptor.isSideBlocked(pos, BlockFace.PX);
-        bool ny = BlockDescriptor.isSideBlocked(pos, BlockFace.NY);
-        bool py = BlockDescriptor.isSideBlocked(pos, BlockFace.PY);
-        bool nz = BlockDescriptor.isSideBlocked(pos, BlockFace.NZ);
-        bool pz = BlockDescriptor.isSideBlocked(pos, BlockFace.PZ);
+        bool nx = !BlockDescriptor.isSideBlocked(pos, BlockFace.NX);
+        bool px = !BlockDescriptor.isSideBlocked(pos, BlockFace.PX);
+        bool ny = !BlockDescriptor.isSideBlocked(pos, BlockFace.NY);
+        bool py = !BlockDescriptor.isSideBlocked(pos, BlockFace.PY);
+        bool nz = !BlockDescriptor.isSideBlocked(pos, BlockFace.NZ);
+        bool pz = !BlockDescriptor.isSideBlocked(pos, BlockFace.PZ);
         return TransformedMesh(theMesh[nx][px][ny][py][nz][pz]);
     }
 
@@ -90,3 +92,32 @@ public abstract class StoneType : BlockDescriptor
         return true;
     }
 }
+
+public final class Stone : StoneType
+{
+    private this()
+    {
+        super("Stone");
+    }
+
+    private static Stone STONE_ = null;
+
+    public static @property STONE()
+    {
+        if(STONE_ is null)
+            STONE_ = new Stone();
+        return STONE_;
+    }
+
+    protected override BlockData readInternal(GameLoadStream gls)
+    {
+        return BlockData(STONE);
+    }
+
+    protected override TextureDescriptor getFaceTexture(BlockFace f)
+    {
+        return TextureAtlas.Stone.td;
+    }
+
+}
+

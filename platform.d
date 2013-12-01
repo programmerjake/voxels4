@@ -29,6 +29,7 @@ import core.runtime;
 import core.time;
 import core.thread;
 import std.conv;
+import matrix;
 
 public immutable(string) ResourcePrefix;
 
@@ -811,6 +812,61 @@ public enum MouseButton : uint
 	Middle = SDL_BUTTON_MMASK,
 	X1 = SDL_BUTTON_X1MASK,
 	X2 = SDL_BUTTON_X2MASK
+}
+
+public void glLoadMatrix(Matrix mat)
+{
+    static if(true)
+    {
+        float[16] matArray =
+        [
+            mat.x00,
+            mat.x01,
+            mat.x02,
+            0,
+
+            mat.x10,
+            mat.x11,
+            mat.x12,
+            0,
+
+            mat.x20,
+            mat.x21,
+            mat.x22,
+            0,
+
+            mat.x30,
+            mat.x31,
+            mat.x32,
+            1,
+        ];
+    }
+    else
+    {
+        float[16] matArray =
+        [
+            mat.x00,
+            mat.x10,
+            mat.x20,
+            mat.x30,
+
+            mat.x01,
+            mat.x11,
+            mat.x21,
+            mat.x31,
+
+            mat.x02,
+            mat.x12,
+            mat.x22,
+            mat.x32,
+
+            0,
+            0,
+            0,
+            1,
+        ];
+    }
+    glLoadMatrixf(cast(const(float) *)matArray);
 }
 
 public struct Display

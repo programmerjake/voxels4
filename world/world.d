@@ -24,6 +24,9 @@ import block.air;
 import matrix;
 import block.stone.bedrock;
 import render.mesh;
+import platform;
+import vector;
+import std.conv;
 
 public enum Dimension
 {
@@ -100,6 +103,18 @@ public struct BlockPosition
         this.chunk = world.getOrAddChunk(ChunkPosition(chunkX,
                                                            chunkZ,
                                                            dimension));
+        this.chunkIndex = (x & Chunk.MOD_SIZE_MASK) + Chunk.Y_INDEX_FACTOR * y
+                + Chunk.Z_INDEX_FACTOR * (z & Chunk.MOD_SIZE_MASK);
+    }
+
+    package this(in int x, in int y, in int z, Chunk c)
+    {
+        this.worldInternal = c.world;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        this.dimension = c.position.dimension;
+        this.chunk = c;
         this.chunkIndex = (x & Chunk.MOD_SIZE_MASK) + Chunk.Y_INDEX_FACTOR * y
                 + Chunk.Z_INDEX_FACTOR * (z & Chunk.MOD_SIZE_MASK);
     }
@@ -332,13 +347,16 @@ public struct BlockPosition
 public enum UpdateType
 {
     Lighting = 0,
-    General, // must not assign to any names after Lighting so we can use UpdateType.max as (length - 1)
+    General,
+    Last
 }
 
 public @property bool autoAddUpdate(UpdateType ut)
 {
     final switch(ut)
     {
+    case UpdateType.Last:
+        assert(false, "got UpdateType.Last in autoAddUpdate");
     case UpdateType.Lighting:
         return true;
     case UpdateType.General:
@@ -526,12 +544,6 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
             return retval;
         }
     }
-
-    public Mesh makeMesh(Mesh delegate(int x, int y, int z, ref bool canCache) makeMeshBottom)
-    {
-        bool canCache;
-        return makeMesh(canCache, makeMeshBottom);
-    }
 }
 
 private final class Chunk
@@ -542,16 +554,18 @@ private final class Chunk
     public static immutable int Y_SIZE = 1 << LOG2_Y_SIZE; // aka world height
     public static immutable int MOD_SIZE_MASK = XZ_SIZE - 1;
     public static immutable int FLOOR_SIZE_MASK = ~MOD_SIZE_MASK;
-    public static immutable int Y_INDEX_FACTOR = Y_SIZE;
+    public static immutable int Y_INDEX_FACTOR = XZ_SIZE;
     public static immutable int Z_INDEX_FACTOR = Y_SIZE * XZ_SIZE;
 
     public ChunkPosition position;
     public World world;
     public Chunk nx = null, px = null, nz = null, pz = null;
     public BlockData[XZ_SIZE * Y_SIZE * XZ_SIZE] blocks;
-    public BlockUpdateEvent[XZ_SIZE * Y_SIZE * XZ_SIZE][UpdateType.max + 1] blockUpdatesArray;
+    private alias BlockUpdateEvent[UpdateType.Last] BlockUpdateSubArray;
+    public BlockUpdateSubArray[XZ_SIZE * Y_SIZE * XZ_SIZE] blockUpdatesArray;
     public LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent) blockUpdatesMap;
     public MeshOctTree!(2, XZ_SIZE, 0, 0, 0)[Y_SIZE / XZ_SIZE] meshCache;
+    public Mesh overallMesh = null;
 
     public this(World world, ChunkPosition position)
     {
@@ -560,13 +574,46 @@ private final class Chunk
         blockUpdatesMap = new LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent)();
         foreach(int i, ref BlockData b; blocks)
         {
-            b = BlockData(Air.AIR);
+            b = BlockData(null);
         }
     }
 
     public void invalidate(int x, int y, int z)
     {
-        meshCache.invalidate(x & MOD_SIZE_MASK, y, z & MOD_SIZE_MASK);
+        overallMesh = null;
+        meshCache[y / XZ_SIZE].invalidate(x & MOD_SIZE_MASK, y & MOD_SIZE_MASK, z & MOD_SIZE_MASK);
+    }
+
+    public Mesh makeMesh()
+    {
+        if(overallMesh !is null)
+            return overallMesh;
+        Mesh retval = new Mesh();
+        overallMesh = retval;
+        for(int yBlock = 0, i = 0; yBlock < Y_SIZE; yBlock += XZ_SIZE, i++)
+        {
+            Mesh makeMeshBlock(int x, int y, int z, ref bool canCache)
+            {
+                canCache = true;
+                BlockPosition pos = BlockPosition(x + position.x, y + yBlock, z + position.z, this);
+                BlockData b = pos.get();
+                if(!b.good)
+                {
+                    return Mesh.EMPTY;
+                }
+                BlockDescriptor bd = b.descriptor;
+                canCache = !bd.graphicsChanges(pos);
+                TransformedMesh drawMesh = bd.getDrawMesh(pos);
+                if(drawMesh.mesh is null)
+                    return Mesh.EMPTY;
+                return new Mesh(TransformedMesh(drawMesh, Matrix.translate(x + position.x, y + yBlock, z + position.z)));
+            }
+            bool canCache;
+            retval.add(meshCache[i].makeMesh(canCache, &makeMeshBlock));
+            if(!canCache)
+                overallMesh = null;
+        }
+        return retval.seal();
     }
 }
 
@@ -588,7 +635,7 @@ public final class World
     {
         return currentTimeInternal;
     }
-    //FIXME (jacob#): finish
+
     public this()
     {
         chunks = new LinkedHashMap!(ChunkPosition, Chunk)();
@@ -614,6 +661,7 @@ public final class World
             retval.nz.pz = retval;
         if(retval.pz !is null)
             retval.pz.nz = retval;
+        this.chunks.set(chunkPos, retval);
         return retval;
     }
 
@@ -698,8 +746,8 @@ public final class World
         assert(c.position.x == (p.x & Chunk.FLOOR_SIZE_MASK)
                 && c.position.z == (p.z & Chunk.FLOOR_SIZE_MASK)
                 && c.position.dimension == p.dimension);
-        int index = (p.x - c.position.x) + p.y * Chunk.Y_INDEX_FACTOR
-                + (p.z - c.position.z) * Chunk.Z_INDEX_FACTOR;
+        int index = (p.x & Chunk.MOD_SIZE_MASK) + p.y * Chunk.Y_INDEX_FACTOR
+                + (p.z & Chunk.MOD_SIZE_MASK) * Chunk.Z_INDEX_FACTOR;
         if(c.blockUpdatesArray[index][typeIndex] is null
                 || c.blockUpdatesArray[index][typeIndex].updateTime > e.updateTime)
         {
@@ -711,6 +759,27 @@ public final class World
         }
     }
 
+    private void invalidate(in int x, in int y, in int z, in Dimension dimension)
+    {
+        if(y < 0 || y >= World.MAX_HEIGHT)
+            return;
+        int chunkX = x & Chunk.FLOOR_SIZE_MASK;
+        int chunkZ = z & Chunk.FLOOR_SIZE_MASK;
+        Chunk chunk = getOrAddChunk(ChunkPosition(chunkX, chunkZ, dimension));
+        chunk.invalidate(x, y, z);
+    }
+
+    public void invalidateGraphics(in int x, in int y, in int z, in Dimension dimension)
+    {
+        invalidate(x, y, z, dimension);
+        invalidate(x + 1, y, z, dimension);
+        invalidate(x - 1, y, z, dimension);
+        invalidate(x, y + 1, z, dimension);
+        invalidate(x, y - 1, z, dimension);
+        invalidate(x, y, z + 1, dimension);
+        invalidate(x, y, z - 1, dimension);
+    }
+
     public void setBlock(in int x,
                          in int y,
                          in int z,
@@ -719,14 +788,14 @@ public final class World
     {
         if(y < 0 || y >= World.MAX_HEIGHT)
             return;
+        invalidateGraphics(x, y, z, dimension);
         int chunkX = x & Chunk.FLOOR_SIZE_MASK;
         int chunkZ = z & Chunk.FLOOR_SIZE_MASK;
         Chunk chunk = getOrAddChunk(ChunkPosition(chunkX, chunkZ, dimension));
         int chunkIndex = (x & Chunk.MOD_SIZE_MASK) + Chunk.Y_INDEX_FACTOR * y
                 + Chunk.Z_INDEX_FACTOR * (z & Chunk.MOD_SIZE_MASK);
         chunk.blocks[chunkIndex] = blockData;
-        chunk.invalidate(x, y, z);
-        for(UpdateType type = cast(UpdateType)0; type <= UpdateType.max; type++)
+        for(UpdateType type = cast(UpdateType)0; type < UpdateType.Last; type++)
             if(autoAddUpdate(type))
                 replaceBlockUpdateIfNewer(chunk,
                                           new BlockUpdateEvent(BlockUpdatePosition(x,
@@ -820,14 +889,29 @@ public final class World
 
     private void drawChunk(Chunk c)
     {
-
+        Renderer.render(c.makeMesh());
     }
 
     public uint viewDistance = 16;
 
-    public void draw(Matrix viewMatrix)
+    public void draw(Vector viewPoint, float theta, float phi, Dimension dimension)
     {
+        glClearColor(0.5, 0.5, 1, 1);
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        glMatrixMode(GL_MODELVIEW);
+        glLoadMatrix(Matrix.translate(-viewPoint).concat(Matrix.thetaPhi(theta, phi)));
+        int viewX = ifloor(viewPoint.x);
+        int viewZ = ifloor(viewPoint.z);
+        int minCX = (viewX - viewDistance) & Chunk.FLOOR_SIZE_MASK, maxCX = (viewX + viewDistance) & Chunk.FLOOR_SIZE_MASK;
+        int minCZ = (viewZ - viewDistance) & Chunk.FLOOR_SIZE_MASK, maxCZ = (viewZ + viewDistance) & Chunk.FLOOR_SIZE_MASK;
+        for(int cx = minCX; cx <= maxCX; cx += Chunk.XZ_SIZE)
+        {
+            for(int cz = minCZ; cz <= maxCZ; cz += Chunk.XZ_SIZE)
+            {
+                Chunk c = getOrAddChunk(ChunkPosition(cx, cz, dimension));
+                drawChunk(c);
+            }
+        }
         //TODO (jacob#): finish
-        assert(false, "finish");
     }
 }

@@ -20,15 +20,40 @@ module main;
 import platform;
 import event;
 import std.string;
+import world.world;
+import block.block;
+import block.air;
+import block.stone.bedrock;
+import block.stone.stone;
+import matrix;
+import std.conv;
+import std.stdio;
+import std.math;
+import vector;
 
 int main(string[] args)
 {
     bool done = false;
+    World w = new World();
+    for(int x = -20; x <= 20; x++)
+    {
+        for(int y = 0; y < World.MAX_HEIGHT; y++)
+        {
+            for(int z = -20; z <= 20; z++)
+            {
+                if(x * x + (y - 64) * (y - 64) + z * z < 5 * 5)
+                    w.setBlock(x, y, z, Dimension.Overworld, BlockData(Air.AIR));
+                else if(y >= 64)
+                    w.setBlock(x, y, z, Dimension.Overworld, BlockData(Stone.STONE));
+                else
+                    w.setBlock(x, y, z, Dimension.Overworld, BlockData(Bedrock.BEDROCK));
+            }
+        }
+    }
     while(!done)
     {
-		glClearColor(0, 0, 0, 0);
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		Display.initFrame();
+		w.draw(Vector(0.5, 63.5, 0.5), Display.timer % (PI * 2), PI / 4, Dimension.Overworld);
 		Display.flip();
 		Display.handleEvents(null);
 		static int i = 0;
