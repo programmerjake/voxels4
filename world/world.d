@@ -46,12 +46,10 @@ private static void renderLayerSetup(RenderLayer rl)
     final switch(rl)
     {
     case RenderLayer.Opaque:
-        glFlush();
         glDepthMask(GL_TRUE);
         break;
     case RenderLayer.Translucent:
-        glFlush();
-        //glDepthMask(GL_FALSE); //FIXME (jacob#): change back
+        glDepthMask(GL_FALSE);
         break;
     }
 }
@@ -920,7 +918,6 @@ public final class World
 
     public void draw(Vector viewPoint, float theta, float phi, Dimension dimension)
     {
-        glFlush();
         glDepthMask(GL_TRUE);
         glClearColor(0.5, 0.5, 1, 1);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);

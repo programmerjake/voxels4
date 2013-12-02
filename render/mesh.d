@@ -24,6 +24,7 @@ public import render.texture_descriptor;
 import platform;
 import util;
 import std.string;
+import std.stdio;
 
 public struct Triangle
 {
@@ -487,6 +488,17 @@ public final class Mesh
         if(EMPTY_ is null)
             EMPTY_ = (new Mesh()).seal();
         return EMPTY_;
+	}
+
+	public void dump()
+	{
+        writefln("Mesh : image:%s length:%s", cast(void *)texture, trianglesUsed);
+        writefln("{");
+        foreach(int i, Triangle tri; this)
+        {
+            writefln("%s:\t<%s, %s, %s>, <%s, %s, %s>, <%s, %s, %s>", i, tri.p[0].x, tri.p[0].y, tri.p[0].z, tri.p[1].x, tri.p[1].y, tri.p[1].z, tri.p[2].x, tri.p[2].y, tri.p[2].z);
+        }
+        writefln("}");
 	}
 }
 

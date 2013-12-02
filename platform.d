@@ -957,8 +957,8 @@ public struct Display
         glEnable(GL_BLEND);
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
-        glAlphaFunc(GL_LESS, 0.95f);
-        glBlendFunc(GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA);
+        glAlphaFunc(GL_GREATER, 0.05f);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
         glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
         glViewport(0, 0, width, height);

@@ -30,6 +30,7 @@ import std.conv;
 import std.stdio;
 import std.math;
 import vector;
+import resource.texture_atlas;
 
 int main(string[] args)
 {
@@ -53,7 +54,7 @@ int main(string[] args)
     while(!done)
     {
 		Display.initFrame();
-		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 6, Dimension.Overworld);
+		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
 		Display.flip();
 		Display.handleEvents(null);
 		static int i = 0;
