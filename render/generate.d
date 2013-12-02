@@ -62,7 +62,7 @@ public struct Generate
 		return new Mesh(texture.image, triangles);
 	}
 
-	public immutable Color[24] defaultBoxColors =
+	public static immutable Color[24] defaultBoxColors =
 	[
 		Color.WHITE,
 		Color.WHITE,

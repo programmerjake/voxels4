@@ -161,6 +161,7 @@ final class Image
 	{
 		if(rowOrder == newRowOrder)
 			return;
+        rowOrder = newRowOrder;
 		for(int y1 = 0, y2 = h - 1; y1 < y2; y1++, y2--)
 		{
 			swapRows(y1, y2);

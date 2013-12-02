@@ -571,10 +571,10 @@ private Event makeEvent()
 
 private final class DefaultEventHandler : EventHandler
 {
-	private static immutable DefaultEventHandler handler;
+	private static EventHandler handler;
 	static this()
 	{
-		handler = new immutable(DefaultEventHandler)();
+		handler = new DefaultEventHandler();
 	}
 	public bool handleMouseUp(MouseUpEvent event)
 	{

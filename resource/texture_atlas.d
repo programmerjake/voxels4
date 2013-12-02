@@ -24,7 +24,7 @@ public class TextureAtlas
 	public immutable int left, top, width, height;
 	public static immutable int textureXRes = 512, textureYRes = 256;
 	private static Image textureInternal = null;
-	package this(int left, int top, int width, int height)
+	package immutable this(int left, int top, int width, int height)
 	{
         this.left = left;
 		this.top = top;

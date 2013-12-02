@@ -21,6 +21,6 @@ public struct GameVersion
 {
     public @disable this();
 
-    public immutable string VERSION = "0.4.1";
-    public immutable uint FILE_VERSION = 0;
+    public static immutable string VERSION = "0.4.1";
+    public static immutable uint FILE_VERSION = 0;
 }
