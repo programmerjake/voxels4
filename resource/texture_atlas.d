@@ -16,8 +16,7 @@
  *
  */
 module resource.texture_atlas;
-import render.texture_descriptor;
-import image;
+public import render.texture_descriptor;
 
 public class TextureAtlas
 {
@@ -333,7 +332,7 @@ public class TextureAtlas
     WoodPressurePlateSide,
     WoodShovel,
     Wool;
-    
+
     static this()
     {
 		ActivatorRailOff = new immutable(TextureAtlas)(0, 0, 16, 16);

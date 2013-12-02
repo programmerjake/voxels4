@@ -41,7 +41,7 @@ int main(string[] args)
         {
             for(int z = -20; z <= 20; z++)
             {
-                if(x * x + (y - 64) * (y - 64) + z * z < 5 * 5)
+                if(x * x + (y - 64) * (y - 64) + z * z < 5 * 5 || y >= 65)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Air.AIR));
                 else if(y >= 64)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Stone.STONE));
@@ -53,7 +53,7 @@ int main(string[] args)
     while(!done)
     {
 		Display.initFrame();
-		w.draw(Vector(0.5, 63.5, 0.5), Display.timer % (PI * 2), PI / 4, Dimension.Overworld);
+		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 6, Dimension.Overworld);
 		Display.flip();
 		Display.handleEvents(null);
 		static int i = 0;

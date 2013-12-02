@@ -17,7 +17,7 @@
  */
 module render.texture_descriptor;
 
-import image;
+public import image;
 import util;
 
 public struct TextureDescriptor
@@ -33,12 +33,12 @@ public struct TextureDescriptor
         this.minV = minV;
         this.maxV = maxV;
 	}
-	
+
 	public bool opCast(T : bool)() const
 	{
 		return this.image !is null;
 	}
-	
+
 	public TextureDescriptor subTexture(const float minU, const float maxU, const float minV, const float maxV) const
 	{
 		return TextureDescriptor(*cast(Image *)&image, interpolate(minU, this.minU, this.maxU), interpolate(maxU, this.minU, this.maxU), interpolate(minV, this.minV, this.maxV), interpolate(maxV, this.minV, this.maxV));

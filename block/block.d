@@ -16,11 +16,12 @@
  *
  */
 module block.block;
-import persistance.game_load_stream;
-import persistance.game_store_stream;
-import world.block_face;
-import world.world;
-import render.mesh;
+public import render.mesh;
+public import render.texture_descriptor;
+public import world.world;
+public import world.block_face;
+public import persistance.game_load_stream;
+public import persistance.game_store_stream;
 import block.air;
 
 public struct BlockData
@@ -48,7 +49,7 @@ public abstract class BlockDescriptor
         addToBlockList(this);
     }
 
-    public abstract TransformedMesh getDrawMesh(BlockPosition pos);
+    public abstract TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl);
     protected abstract BlockData readInternal(GameLoadStream gls);
     public abstract bool graphicsChanges(BlockPosition pos);
     public abstract bool isSideBlocked(BlockData data, BlockFace face);
@@ -56,6 +57,14 @@ public abstract class BlockDescriptor
     protected uint getEmittedLight(BlockData data)
     {
         return 0;
+    }
+    protected abstract void writeInternal(BlockData data, GameStoreStream gss);
+
+    public static void write(BlockData data, GameStoreStream gss)
+    {
+        assert(data.good);
+        gss.write(data.descriptor);
+        data.descriptor.writeInternal(data, gss);
     }
 
     public static BlockData read(GameLoadStream gls)

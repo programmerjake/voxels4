@@ -16,11 +16,12 @@
  *
  */
 module persistance.game_load_stream;
-import file.stream;
-import std.math;
-import persistance.game_version;
+public import file.stream;
+public import persistance.game_version;
 import vector;
 import block.block;
+import entity.entity;
+import std.math;
 
 public final class InvalidDataValueException : IOException
 {
@@ -239,5 +240,23 @@ public final class GameLoadStream : Reader
         }
         index--;
         return blockDescriptors[index];
+	}
+
+	private EntityDescriptor[] entityDescriptors;
+
+	public EntityDescriptor readEntityDescriptor()
+	{
+	    uint index = readRangeLimitedUnsignedInt(0, cast(uint)entityDescriptors.length);
+	    if(index == 0)
+        {
+            string name = cast(string)readUTF8();
+            EntityDescriptor ed = EntityDescriptor.getEntity(name);
+            if(ed is null)
+                throw new InvalidDataValueException("entity type not found");
+            entityDescriptors ~= [ed];
+            return ed;
+        }
+        index--;
+        return entityDescriptors[index];
 	}
 }

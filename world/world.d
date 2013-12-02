@@ -28,9 +28,30 @@ import platform;
 import vector;
 import std.conv;
 
+//FIXME (jacob#): finish adding entities
+
 public enum Dimension
 {
     Overworld,
+}
+
+public enum RenderLayer
+{
+    Opaque, /// also totally transparent
+    Translucent,
+}
+
+private static void renderLayerSetup(RenderLayer rl)
+{
+    final switch(rl)
+    {
+    case RenderLayer.Opaque:
+        glDepthMask(GL_TRUE);
+        break;
+    case RenderLayer.Translucent:
+        glDepthMask(GL_FALSE);
+        break;
+    }
 }
 
 private struct ChunkPosition
@@ -348,15 +369,12 @@ public enum UpdateType
 {
     Lighting = 0,
     General,
-    Last
 }
 
 public @property bool autoAddUpdate(UpdateType ut)
 {
     final switch(ut)
     {
-    case UpdateType.Last:
-        assert(false, "got UpdateType.Last in autoAddUpdate");
     case UpdateType.Lighting:
         return true;
     case UpdateType.General:
@@ -561,11 +579,12 @@ private final class Chunk
     public World world;
     public Chunk nx = null, px = null, nz = null, pz = null;
     public BlockData[XZ_SIZE * Y_SIZE * XZ_SIZE] blocks;
-    private alias BlockUpdateEvent[UpdateType.Last] BlockUpdateSubArray;
+    private alias BlockUpdateEvent[UpdateType.max + 1] BlockUpdateSubArray;
     public BlockUpdateSubArray[XZ_SIZE * Y_SIZE * XZ_SIZE] blockUpdatesArray;
     public LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent) blockUpdatesMap;
-    public MeshOctTree!(2, XZ_SIZE, 0, 0, 0)[Y_SIZE / XZ_SIZE] meshCache;
-    public Mesh overallMesh = null;
+    public alias MeshOctTree!(2, XZ_SIZE, 0, 0, 0)[Y_SIZE / XZ_SIZE] MeshCacheType;
+    public MeshCacheType[RenderLayer.max + 1] meshCache;
+    public Mesh[RenderLayer.max + 1] overallMesh = null;
 
     public this(World world, ChunkPosition position)
     {
@@ -580,16 +599,19 @@ private final class Chunk
 
     public void invalidate(int x, int y, int z)
     {
-        overallMesh = null;
-        meshCache[y / XZ_SIZE].invalidate(x & MOD_SIZE_MASK, y & MOD_SIZE_MASK, z & MOD_SIZE_MASK);
+        for(int rl = 0; rl <= RenderLayer.max; rl++)
+        {
+            overallMesh[rl] = null;
+            meshCache[rl][y / XZ_SIZE].invalidate(x & MOD_SIZE_MASK, y & MOD_SIZE_MASK, z & MOD_SIZE_MASK);
+        }
     }
 
-    public Mesh makeMesh()
+    public Mesh makeMesh(RenderLayer rl)
     {
-        if(overallMesh !is null)
-            return overallMesh;
+        if(overallMesh[rl] !is null)
+            return overallMesh[rl];
         Mesh retval = new Mesh();
-        overallMesh = retval;
+        overallMesh[rl] = retval;
         for(int yBlock = 0, i = 0; yBlock < Y_SIZE; yBlock += XZ_SIZE, i++)
         {
             Mesh makeMeshBlock(int x, int y, int z, ref bool canCache)
@@ -603,15 +625,15 @@ private final class Chunk
                 }
                 BlockDescriptor bd = b.descriptor;
                 canCache = !bd.graphicsChanges(pos);
-                TransformedMesh drawMesh = bd.getDrawMesh(pos);
+                TransformedMesh drawMesh = bd.getDrawMesh(pos, rl);
                 if(drawMesh.mesh is null)
                     return Mesh.EMPTY;
                 return new Mesh(TransformedMesh(drawMesh, Matrix.translate(x + position.x, y + yBlock, z + position.z)));
             }
             bool canCache;
-            retval.add(meshCache[i].makeMesh(canCache, &makeMeshBlock));
+            retval.add(meshCache[rl][i].makeMesh(canCache, &makeMeshBlock));
             if(!canCache)
-                overallMesh = null;
+                overallMesh[rl] = null;
         }
         return retval.seal();
     }
@@ -795,7 +817,7 @@ public final class World
         int chunkIndex = (x & Chunk.MOD_SIZE_MASK) + Chunk.Y_INDEX_FACTOR * y
                 + Chunk.Z_INDEX_FACTOR * (z & Chunk.MOD_SIZE_MASK);
         chunk.blocks[chunkIndex] = blockData;
-        for(UpdateType type = cast(UpdateType)0; type < UpdateType.Last; type++)
+        for(UpdateType type = cast(UpdateType)0; type <= UpdateType.max; type++)
             if(autoAddUpdate(type))
                 replaceBlockUpdateIfNewer(chunk,
                                           new BlockUpdateEvent(BlockUpdatePosition(x,
@@ -887,15 +909,16 @@ public final class World
         //TODO (jacob#): finish
     }
 
-    private void drawChunk(Chunk c)
+    private void drawChunk(Chunk c, RenderLayer rl)
     {
-        Renderer.render(c.makeMesh());
+        Renderer.render(c.makeMesh(rl));
     }
 
     public uint viewDistance = 16;
 
     public void draw(Vector viewPoint, float theta, float phi, Dimension dimension)
     {
+        glDepthMask(GL_TRUE);
         glClearColor(0.5, 0.5, 1, 1);
         glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         glMatrixMode(GL_MODELVIEW);
@@ -904,12 +927,17 @@ public final class World
         int viewZ = ifloor(viewPoint.z);
         int minCX = (viewX - viewDistance) & Chunk.FLOOR_SIZE_MASK, maxCX = (viewX + viewDistance) & Chunk.FLOOR_SIZE_MASK;
         int minCZ = (viewZ - viewDistance) & Chunk.FLOOR_SIZE_MASK, maxCZ = (viewZ + viewDistance) & Chunk.FLOOR_SIZE_MASK;
-        for(int cx = minCX; cx <= maxCX; cx += Chunk.XZ_SIZE)
+        for(int i = RenderLayer.min; i <= RenderLayer.max; i++)
         {
-            for(int cz = minCZ; cz <= maxCZ; cz += Chunk.XZ_SIZE)
+            RenderLayer rl = cast(RenderLayer)i;
+            renderLayerSetup(rl);
+            for(int cx = minCX; cx <= maxCX; cx += Chunk.XZ_SIZE)
             {
-                Chunk c = getOrAddChunk(ChunkPosition(cx, cz, dimension));
-                drawChunk(c);
+                for(int cz = minCZ; cz <= maxCZ; cz += Chunk.XZ_SIZE)
+                {
+                    Chunk c = getOrAddChunk(ChunkPosition(cx, cz, dimension));
+                    drawChunk(c, rl);
+                }
             }
         }
         //TODO (jacob#): finish

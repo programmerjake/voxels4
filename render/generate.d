@@ -16,13 +16,8 @@
  *
  */
 module render.generate;
-import render.mesh;
-import render.texture_descriptor;
-import color;
-import vector;
-import matrix;
-import image;
-	
+public import render.mesh;
+
 public Mesh invert(Mesh input)
 {
 	if(input.length <= 0)
@@ -31,7 +26,7 @@ public Mesh invert(Mesh input)
 	foreach(int i, Triangle t; input)
 	{
 		for(int j = 0, k = 3 - 1; j < 3; j++, k--)
-		{				
+		{
 			triangles[i].p[j] = t.p[k];
 			triangles[i].c[j] = t.c[k];
 			triangles[i].u[j] = t.u[k];
@@ -40,21 +35,21 @@ public Mesh invert(Mesh input)
 	}
 	return new Mesh(input.texture, triangles);
 }
-	
+
 public TransformedMesh invert(TransformedMesh input)
 {
 	if(input.mesh is null)
 	{
 		return input;
 	}
-	
+
 	return TransformedMesh(invert(input.mesh), input.transform);
 }
 
 public struct Generate
 {
 	public @disable this();
-	
+
 	public static Mesh quadrilateral(TextureDescriptor texture, Vector p1, Color c1, Vector p2, Color c2, Vector p3, Color c3, Vector p4, Color c4)
 	{
 		if(!texture)
@@ -66,45 +61,45 @@ public struct Generate
 		Triangle[2] triangles = [Triangle(p1, c1, u1, v1, p2, c2, u2, v2, p3, c3, u3, v3), Triangle(p3, c3, u3, v3, p4, c4, u4, v4, p1, c1, u1, v1)];
 		return new Mesh(texture.image, triangles);
 	}
-	
+
 	public immutable Color[24] defaultBoxColors =
 	[
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
-		
+
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
-		
+
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
-		
+
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
-		
+
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
-		
+
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE,
 		Color.WHITE
 	];
-	
+
 	public enum Coordinate
 	{
 		X = 0, Y = 1, Z = 2
 	};
-	
+
 	public static pure int unitBoxColorIndex(bool x, bool y, bool z, Coordinate coordinate)
 	{
 		int retval = 0;
@@ -117,7 +112,7 @@ public struct Generate
 		retval += cast(int)coordinate;
 		return retval;
 	}
-	
+
 	/// make a box from <0, 0, 0> to <1, 1, 1>
 	public static Mesh unitBox(TextureDescriptor nx, TextureDescriptor px, TextureDescriptor ny, TextureDescriptor py, TextureDescriptor nz, TextureDescriptor pz, const Color[] colors = defaultBoxColors)
 	{
@@ -134,8 +129,8 @@ public struct Generate
 		Mesh retval = new Mesh();
 		if(nx)
 		{
-			retval.add(quadrilateral(nx, 
-									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.X)], 
+			retval.add(quadrilateral(nx,
+									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.X)],
 									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.X)],
 									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.X)],
 									 p2, c[unitBoxColorIndex(false, true, false, Coordinate.X)],
@@ -143,7 +138,7 @@ public struct Generate
 		}
 		if(px)
 		{
-			retval.add(quadrilateral(px, 
+			retval.add(quadrilateral(px,
 									 p3, c[unitBoxColorIndex(true, true, false, Coordinate.X)],
 									 p7, c[unitBoxColorIndex(true, true, true, Coordinate.X)],
 									 p5, c[unitBoxColorIndex(true, false, true, Coordinate.X)],
@@ -152,8 +147,8 @@ public struct Generate
 		}
 		if(ny)
 		{
-			retval.add(quadrilateral(ny, 
-									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.Y)], 
+			retval.add(quadrilateral(ny,
+									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.Y)],
 									 p1, c[unitBoxColorIndex(true, false, false, Coordinate.Y)],
 									 p5, c[unitBoxColorIndex(true, false, true, Coordinate.Y)],
 									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.Y)]
@@ -161,8 +156,8 @@ public struct Generate
 		}
 		if(py)
 		{
-			retval.add(quadrilateral(py, 
-									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.Y)], 
+			retval.add(quadrilateral(py,
+									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.Y)],
 									 p7, c[unitBoxColorIndex(true, true, true, Coordinate.Y)],
 									 p3, c[unitBoxColorIndex(true, true, false, Coordinate.Y)],
 									 p2, c[unitBoxColorIndex(false, true, false, Coordinate.Y)]
@@ -170,8 +165,8 @@ public struct Generate
 		}
 		if(nz)
 		{
-			retval.add(quadrilateral(nz, 
-									 p1, c[unitBoxColorIndex(true, false, false, Coordinate.Z)], 
+			retval.add(quadrilateral(nz,
+									 p1, c[unitBoxColorIndex(true, false, false, Coordinate.Z)],
 									 p0, c[unitBoxColorIndex(false, false, false, Coordinate.Z)],
 									 p2, c[unitBoxColorIndex(false, true, false, Coordinate.Z)],
 									 p3, c[unitBoxColorIndex(true, true, false, Coordinate.Z)],
@@ -179,8 +174,8 @@ public struct Generate
 		}
 		if(pz)
 		{
-			retval.add(quadrilateral(pz, 
-									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.Z)], 
+			retval.add(quadrilateral(pz,
+									 p4, c[unitBoxColorIndex(false, false, true, Coordinate.Z)],
 									 p5, c[unitBoxColorIndex(true, false, true, Coordinate.Z)],
 									 p7, c[unitBoxColorIndex(true, true, true, Coordinate.Z)],
 									 p6, c[unitBoxColorIndex(false, true, true, Coordinate.Z)],

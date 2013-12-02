@@ -16,13 +16,8 @@
  *
  */
 module block.stone.stone;
-import block.block;
-import render.mesh;
+public import block.block;
 import render.generate;
-import render.texture_descriptor;
-import world.world;
-import world.block_face;
-import persistance.game_load_stream;
 import resource.texture_atlas;
 
 public abstract class StoneType : BlockDescriptor
@@ -66,8 +61,10 @@ public abstract class StoneType : BlockDescriptor
 
     private Mesh[2][2][2][2][2][2] theMesh;
 
-    public override TransformedMesh getDrawMesh(BlockPosition pos)
+    public override TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl)
     {
+        if(rl != RenderLayer.Opaque)
+            return TransformedMesh();
         bool nx = !BlockDescriptor.isSideBlocked(pos, BlockFace.NX);
         bool px = !BlockDescriptor.isSideBlocked(pos, BlockFace.PX);
         bool ny = !BlockDescriptor.isSideBlocked(pos, BlockFace.NY);
@@ -97,7 +94,7 @@ public final class Stone : StoneType
 {
     private this()
     {
-        super("Stone");
+        super("Default.Stone");
     }
 
     private static Stone STONE_ = null;
@@ -119,5 +116,8 @@ public final class Stone : StoneType
         return TextureAtlas.Stone.td;
     }
 
+    protected override void writeInternal(BlockData data, GameStoreStream gss)
+    {
+    }
 }
 

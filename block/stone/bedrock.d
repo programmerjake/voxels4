@@ -16,18 +16,14 @@
  *
  */
 module block.stone.bedrock;
-import block.block;
 import block.stone.stone;
 import resource.texture_atlas;
-import persistance.game_load_stream;
-import render.texture_descriptor;
-import world.block_face;
 
 public final class Bedrock : StoneType
 {
     private this()
     {
-        super("Bedrock");
+        super("Builtin.Bedrock");
     }
 
     private static Bedrock BEDROCK_;
@@ -52,4 +48,7 @@ public final class Bedrock : StoneType
         return TextureAtlas.Bedrock.td;
     }
 
+    protected override void writeInternal(BlockData data, GameStoreStream gss)
+    {
+    }
 }

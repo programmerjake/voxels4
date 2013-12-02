@@ -42,10 +42,10 @@ public final class Air : BlockDescriptor
 
     private this()
     {
-        super("Air");
+        super("Builtin.Air");
     }
 
-    public override TransformedMesh getDrawMesh(BlockPosition pos)
+    public override TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl)
     {
         return TransformedMesh();
     }
@@ -68,5 +68,9 @@ public final class Air : BlockDescriptor
     public override bool isOpaque(BlockData data)
     {
         return false;
+    }
+
+    protected override void writeInternal(BlockData data, GameStoreStream gss)
+    {
     }
 }

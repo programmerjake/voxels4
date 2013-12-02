@@ -16,13 +16,13 @@
  *
  */
 module render.mesh;
-import matrix;
-import vector;
-import color;
-import image;
+public import matrix;
+public import vector;
+public import color;
+public import image;
+public import render.texture_descriptor;
 import platform;
 import util;
-import render.texture_descriptor;
 import std.string;
 
 public struct Triangle

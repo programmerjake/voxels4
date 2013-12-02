@@ -16,11 +16,12 @@
  *
  */
 module persistance.game_store_stream;
-import persistance.game_load_stream;
-import persistance.game_version;
-import file.stream;
+public import persistance.game_load_stream;
+public import persistance.game_version;
+public import file.stream;
 import vector;
 import block.block;
+import entity.entity;
 
 public final class GameStoreStream : Writer
 {
@@ -70,6 +71,20 @@ public final class GameStoreStream : Writer
         {
             write(cast(wstring)bd.name);
             blockDescriptors[bd.name] = nextBlockDescriptor++;
+        }
+	}
+
+	private uint[string] entityDescriptors;
+	private uint nextEntityDescriptor = 1;
+
+	public void write(EntityDescriptor ed)
+	{
+	    uint index = entityDescriptors.get(ed.name, 0);
+	    write(index);
+	    if(index == 0)
+        {
+            write(cast(wstring)ed.name);
+            entityDescriptors[ed.name] = nextEntityDescriptor++;
         }
 	}
 }
