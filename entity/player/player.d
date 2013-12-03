@@ -36,7 +36,7 @@ private final class PlayerDescriptor : EntityDescriptor
     protected override EntityData readInternal(GameLoadStream gls)
     {
         Player p = Player.readInternal(gls);
-        EntityData data = EntityData(Player.PLAYER, p.position);
+        EntityData data = EntityData(Player.PLAYER, p.position, p.dimension);
         data.data = cast(void *)p;
         return data;
     }
@@ -47,6 +47,7 @@ private final class PlayerDescriptor : EntityDescriptor
         assert(p !is null);
         p.move(deltaTime);
         data.position = p.position;
+        data.dimension = p.dimension;
     }
 
     protected override void writeInternal(EntityData data, GameStoreStream gss)
@@ -95,6 +96,7 @@ public final class Player
 
     private string name;
     package Vector position;
+    package Dimension dimension;
     private float viewTheta, viewPhi;
     private this()
     {

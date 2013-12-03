@@ -92,8 +92,8 @@ static this()
 	}
 	else
 	{
-        xResInternal = 1680;
-        yResInternal = 1050;
+        xResInternal = 1280;
+        yResInternal = 1024;
 	}
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
