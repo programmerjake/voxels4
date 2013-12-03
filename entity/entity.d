@@ -25,11 +25,13 @@ public struct EntityData
 {
     EntityDescriptor descriptor = null;
     Vector position;
+    Dimension dimension;
     void * data = null;
-    this(EntityDescriptor descriptor, Vector position)
+    this(EntityDescriptor descriptor, Vector position, Dimension dimension)
     {
         this.descriptor = descriptor;
         this.position = position;
+        this.dimension = dimension;
     }
     public @property bool good() const
     {

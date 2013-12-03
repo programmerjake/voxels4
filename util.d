@@ -255,7 +255,7 @@ public static bool isPrime(uint v)
 
 public static uint primeCeil(uint v) /// Returns: the smallest prime >= v
 {
-    if(v <= 2)
+    if(v <= 2)(float minx, float miny, float minz, float maxx, float maxy, float maxz, Dimension dimension)
         return 2;
     if(v % 2 == 0)
         v++;
@@ -297,7 +297,7 @@ public bool validOpAssignOp(string op)
     return false;
 }
 
-public final class LinkedHashMap(K, V)
+public final class LinkedHashMap(K, V = K)
 {
     private struct Node
     {

@@ -65,6 +65,13 @@ private struct ChunkPosition
         this.dimension = dimension;
     }
 
+    public this(Vector p, Dimension dimension)
+    {
+        this.x = ifloor(p.x) & Chunk.FLOOR_SIZE_MASK;
+        this.z = ifloor(p.z) & Chunk.FLOOR_SIZE_MASK;
+        this.dimension = dimension;
+    }
+
     public @property ChunkPosition nx()
     {
         return ChunkPosition(this.x - Chunk.XZ_SIZE, this.z, this.dimension);
@@ -426,6 +433,7 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
     private Mesh mesh = null;
     static if(size > minSize)
     {
+
         private static immutable uint subSize = size / 2;
         private MeshOctTree!(minSize, subSize, xOrigin, yOrigin, zOrigin) nnn;
         private MeshOctTree!(minSize, subSize, xOrigin, yOrigin, zOrigin + subSize) nnp;
@@ -485,7 +493,8 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
                 }
                 else
                 {
-                    if(z < zOrigin + subSize)
+                    if(z < zOrigin + subS
+ize)
                     {
                         ppn.invalidate(x, y, z);
                     }
@@ -564,6 +573,43 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
     }
 }
 
+public struct EntityRange
+{
+    public float minx, miny, minz, maxx, maxy, maxz;
+    public Dimension dimension;
+    this(float minx, float miny, float minz, float maxx, float maxy, float maxz, Dimension dimension)
+    {
+        this.minx = minx;
+        this.miny = miny;
+        this.minz = minz;
+        this.maxx = maxx;
+        this.maxy = maxy;
+        this.maxz = maxz;
+        this.dimension = dimension;
+    }
+
+    package bool opBinaryRight(string op)(in EntityData e) if(op == "in")
+    {
+        if(e.dimension != dimension)
+            return false;
+        if(e.position.x < minx)
+            return false;
+        if(e.position.x > maxx)
+            return false;
+        if(e.position.y < miny)
+            return false;
+        if(e.position.y > maxy)
+            return false;
+        if(e.position.z < minz)
+            return false;
+        if(e.position.z > maxz)
+            return false;
+        return true;
+    }
+}
+
+private alias EntityData * EntityNode;
+
 private final class Chunk
 {
     public static immutable int LOG2_XZ_SIZE = 4, LOG2_Y_SIZE = 8;
@@ -585,6 +631,48 @@ private final class Chunk
     public alias MeshOctTree!(2, XZ_SIZE, 0, 0, 0)[Y_SIZE / XZ_SIZE] MeshCacheType;
     public MeshCacheType[RenderLayer.max + 1] meshCache;
     public Mesh[RenderLayer.max + 1] overallMesh = null;
+    private LinkedHashMap!EntityNode[Y_SIZE / XZ_SIZE] entities;
+    private LinkedHashMap!EntityNode otherEntities;
+
+    public LinkedHashMap!EntityNode getEntityList(int y)
+    {
+        if(y < 0 || y >= Y_SIZE)
+            return otherEntities;
+        return entities[y / XZ_SIZE];
+    }
+
+    private int forEachEntityInRangeHelper(LinkedHashMap!EntityNode list, int delegate(ref EntityData data) dg, EntityRange range)
+    {
+        assert(false, "implement");
+        for(auto iter i = list.begin; !i.ended; i++)
+        {
+            if((*i.value) in range)
+            {
+                EntityNode node = i.value;
+                Vector position = node.position;
+                Dimension dimension = node.dimension;
+                int retval = dg(*node);
+                if(node.position != position || node.dimension != dimension || !node.good)
+                {
+                    /*if(ChunkPosition(node.position, node.dimension) != position || ) //FIXME(jacob#): finish
+                    {
+                        i.removeAndGoToNext();
+                        world.reinsertEntity(node);
+                    }*/
+                }
+            }
+        }
+    }
+
+    public int forEachEntityInRange(int delegate(ref EntityData data) dg, EntityRange range)
+    {
+        assert(false, "implement");//FIXME(jacob#): finish
+        int miny = ifloor(range.miny / XZ_SIZE);
+        int maxy = iceil(range.maxy / XZ_SIZE);
+        if(miny < 0 || maxy >= Y_SIZE / XZ_SIZE)
+        {
+        }
+    }
 
     public this(World world, ChunkPosition position)
     {
@@ -595,6 +683,11 @@ private final class Chunk
         {
             b = BlockData(null);
         }
+        for(int i = 0; i < Y_SIZE / XZ_SIZE; i++)
+        {
+            entities[i] = new LinkedHashMap!EntityNode();
+        }
+        otherEntities = new LinkedHashMap!EntityNode();
     }
 
     public void invalidate(int x, int y, int z)
@@ -663,6 +756,12 @@ public final class World
         chunks = new LinkedHashMap!(ChunkPosition, Chunk)();
         blockUpdates = new LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent)();
         blockUpdatesInZeroTime = new LinkedList!BlockUpdateEvent();
+    }
+
+    package void reinsertEntity(EntityNode node)
+    {
+        //FIXME(jacob#): implement
+        assert(false, "implement");
     }
 
     package Chunk getOrAddChunk(ChunkPosition chunkPos)

@@ -1,4 +1,4 @@
-DC=gdc
+DC=ldc2
 SOURCES=$(wildcard *.d */*.d */*/*.d */*/*/*.d)
 OBJECTS=$(SOURCES:.d=.o)
 EXECUTABLE=voxels
@@ -6,10 +6,10 @@ EXECUTABLE=voxels
 all: $(SOURCES) $(EXECUTABLE)
 	
 $(OBJECTS): %.o: %.d
-	$(DC) -c -g -Wall $< -o $@
+	$(DC) -c -g -w $< -of=$@
              
 $(EXECUTABLE): $(OBJECTS)
-	$(DC) -g $(OBJECTS) -ldl -o $@
+	$(DC) -L-ldl $(OBJECTS) -of=$@
 
 .PHONY : clean
 clean :
