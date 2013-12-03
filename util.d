@@ -255,7 +255,7 @@ public static bool isPrime(uint v)
 
 public static uint primeCeil(uint v) /// Returns: the smallest prime >= v
 {
-    if(v <= 2)(float minx, float miny, float minz, float maxx, float maxy, float maxz, Dimension dimension)
+    if(v <= 2)
         return 2;
     if(v % 2 == 0)
         v++;

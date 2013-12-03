@@ -27,6 +27,7 @@ import render.mesh;
 import platform;
 import vector;
 import std.conv;
+import entity.entity;
 
 //FIXME (jacob#): finish adding entities
 
@@ -493,8 +494,7 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
                 }
                 else
                 {
-                    if(z < zOrigin + subS
-ize)
+                    if(z < zOrigin + subSize)
                     {
                         ppn.invalidate(x, y, z);
                     }
@@ -643,8 +643,10 @@ private final class Chunk
 
     private int forEachEntityInRangeHelper(LinkedHashMap!EntityNode list, int delegate(ref EntityData data) dg, EntityRange range)
     {
-        assert(false, "implement");
-        for(auto iter i = list.begin; !i.ended; i++)
+        static if(true)
+            assert(false, "implement");
+        else
+        for(auto i = list.begin; !i.ended; i++)
         {
             if((*i.value) in range)
             {
@@ -666,12 +668,14 @@ private final class Chunk
 
     public int forEachEntityInRange(int delegate(ref EntityData data) dg, EntityRange range)
     {
-        assert(false, "implement");//FIXME(jacob#): finish
+        static if(true)
+            assert(false, "implement");//FIXME(jacob#): finish
+        else{
         int miny = ifloor(range.miny / XZ_SIZE);
         int maxy = iceil(range.maxy / XZ_SIZE);
         if(miny < 0 || maxy >= Y_SIZE / XZ_SIZE)
         {
-        }
+        }}
     }
 
     public this(World world, ChunkPosition position)
