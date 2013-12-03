@@ -32,8 +32,15 @@ import std.math;
 import vector;
 import resource.texture_atlas;
 
+void dumpPixel(int x, int y)
+{
+    Color c = TextureAtlas.texture.getPixel(x, y);
+    writefln("%s, %s : %s, %s, %s, %s", x, y, c.rf, c.gf, c.bf, c.af);
+}
+
 int main(string[] args)
 {
+    dumpPixel(0, 16);
     bool done = false;
     World w = new World();
     for(int x = -20; x <= 20; x++)
@@ -61,7 +68,7 @@ int main(string[] args)
 		if(++i >= Display.averageFPS)
 		{
 			i = 0;
-			Display.title = format("FPS : %g", Display.averageFPS);
+			//Display.title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;
 			if(type)

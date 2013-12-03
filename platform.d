@@ -92,15 +92,15 @@ static this()
 	}
 	else
 	{
-        xResInternal = 1680;
-        yResInternal = 1050;
+        xResInternal = 1280;
+        yResInternal = 1024;
 	}
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1), "can't call SDL_GL_SetAttribute : %s");
-	videoSurface = cast(shared SDL_Surface *)SDL_SetVideoMode(xResInternal, yResInternal, 32, SDL_OPENGL | SDL_FULLSCREEN);
+	videoSurface = cast(shared SDL_Surface *)SDL_SetVideoMode(xResInternal, yResInternal, 32, SDL_OPENGL);
 	enforceSDL(videoSurface != null, "can't set video mode : %s");
 	SDL_EnableUNICODE(1);
 	enforceSDL(0 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL), "can't call SDL_EnableKeyRepeat : %s");

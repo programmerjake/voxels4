@@ -187,6 +187,8 @@ final class Image
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glPixelTransferf(GL_ALPHA_SCALE, 1.0);
+			glPixelTransferf(GL_ALPHA_BIAS, 0.0);
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, cast(GLvoid *)data);
 			textureValid = true;
 		}
