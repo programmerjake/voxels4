@@ -84,6 +84,7 @@ public final class Mesh
     public static immutable int VERTICES_ELEMENTS_PER_TRIANGLE = 3 * 3;
     public static immutable int TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE = 2 * 3;
     public static immutable int COLORS_ELEMENTS_PER_TRIANGLE = 4 * 3;
+
     private float[] expandArray(float[] a, size_t newSize)
     {
         assert(a is null || a.length <= newSize);
@@ -92,6 +93,7 @@ public final class Mesh
         float[] retval = new float[newSize];
         for(int i = 0; i < a.length; i++)
             retval[i] = a[i];
+        delete a;
         return retval;
     }
 

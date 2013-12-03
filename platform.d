@@ -64,7 +64,7 @@ public bool isOpenGLLoaded()
 
 private immutable int ImageDecoderFlags = IMG_INIT_PNG;
 
-private immutable int xResInternal = 1024, yResInternal = 768;
+private immutable int xResInternal, yResInternal;
 
 static this()
 {
@@ -76,12 +76,31 @@ static this()
 	needSDLQuit = true;
 	enforceIMG(ImageDecoderFlags == (ImageDecoderFlags & IMG_Init(ImageDecoderFlags)), "can't start SDLImage : %s");
 	needIMGQuit = true;
+	static if(false)
+	{
+        const(SDL_VideoInfo) * vidInfo = SDL_GetVideoInfo();
+        if(vidInfo is null)
+        {
+            xResInternal = 800;
+            yResInternal = 600;
+        }
+        else
+        {
+            xResInternal = vidInfo.current_w;
+            yResInternal = vidInfo.current_h;
+        }
+	}
+	else
+	{
+        xResInternal = 1680;
+        yResInternal = 1050;
+	}
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24), "can't call SDL_GL_SetAttribute : %s");
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1), "can't call SDL_GL_SetAttribute : %s");
-	videoSurface = cast(shared SDL_Surface *)SDL_SetVideoMode(xResInternal, yResInternal, 32, SDL_OPENGL);
+	videoSurface = cast(shared SDL_Surface *)SDL_SetVideoMode(xResInternal, yResInternal, 32, SDL_OPENGL | SDL_FULLSCREEN);
 	enforceSDL(videoSurface != null, "can't set video mode : %s");
 	SDL_EnableUNICODE(1);
 	enforceSDL(0 == SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL), "can't call SDL_EnableKeyRepeat : %s");
@@ -92,12 +111,12 @@ private static shared SDL_Surface * videoSurface = null;
 
 private void enforceSDL(lazy bool value, string msg)
 {
-	enforce(value, format(msg, SDL_GetError()));
+	enforce(value, format(msg, to!string(SDL_GetError())));
 }
 
 private void enforceIMG(lazy bool value, string msg)
 {
-	enforce(value, format(msg, IMG_GetError()));
+	enforce(value, format(msg, to!string(IMG_GetError())));
 }
 
 private shared TickDuration lastFlipTime;
@@ -598,6 +617,15 @@ private final class DefaultEventHandler : EventHandler
 	}
 	public bool handleKeyDown(KeyDownEvent event)
 	{
+        if(event.key == KeyboardKey.F4 && (event.mods & KeyboardModifiers.Alt) != 0)
+		{
+            synchronized(SDLSyncObject)
+            {
+                Runtime.terminate();
+                exit(0);
+                return true;
+            }
+		}
 		return true;
 	}
 	public bool handleKeyPress(KeyPressEvent event)
@@ -606,12 +634,12 @@ private final class DefaultEventHandler : EventHandler
 	}
 	public bool handleQuit(QuitEvent event)
 	{
-		synchronized(SDLSyncObject)
-		{
-			Runtime.terminate();
-			exit(0);
-			return true;
-		}
+        synchronized(SDLSyncObject)
+        {
+            Runtime.terminate();
+            exit(0);
+            return true;
+        }
 	}
 }
 

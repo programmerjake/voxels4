@@ -62,6 +62,12 @@ int main(string[] args)
 		{
 			i = 0;
 			Display.title = format("FPS : %g", Display.averageFPS);
+			static bool type = false;
+			type = !type;
+			if(type)
+                w.setBlock(-5, 64, 0, Dimension.Overworld, BlockData(Stone.STONE));
+            else
+                w.setBlock(-5, 64, 0, Dimension.Overworld, BlockData(Bedrock.BEDROCK));
 		}
 	}
 	return 0;
