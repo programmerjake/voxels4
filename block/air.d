@@ -50,6 +50,11 @@ public final class Air : BlockDescriptor
         return TransformedMesh();
     }
 
+    public override TransformedMesh getEntityDrawMesh(BlockData data, RenderLayer rl)
+    {
+        return TransformedMesh();
+    }
+
     protected override BlockData readInternal(GameLoadStream gls)
     {
         return BlockData(AIR);

@@ -22,6 +22,7 @@ import vector;
 import block.block;
 import entity.entity;
 import std.math;
+import world.world;
 
 public final class InvalidDataValueException : IOException
 {
@@ -258,5 +259,20 @@ public final class GameLoadStream : Reader
         }
         index--;
         return entityDescriptors[index];
+	}
+
+	public Dimension readDimension()
+	{
+	    return cast(Dimension)readRangeLimitedUnsignedByte(cast(ubyte)Dimension.min, cast(ubyte)Dimension.max);
+	}
+
+	public float readAngleTheta()
+	{
+	    return readRangeLimitedFloat(-2 * PI - 1e-4, 2 * PI + 1e-4);
+	}
+
+	public float readAnglePhi()
+	{
+	    return readRangeLimitedFloat(-PI / 2 - 1e-4, PI / 2 + 1e-4);
 	}
 }

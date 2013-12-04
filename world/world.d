@@ -29,8 +29,6 @@ import vector;
 import std.conv;
 import entity.entity;
 
-//FIXME (jacob#): finish adding entities
-
 public enum Dimension
 {
     Overworld,
@@ -573,6 +571,22 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
     }
 }
 
+public struct IteratableEntityRange
+{
+    public @disable this();
+    private EntityRange range;
+    private World world;
+    package this(EntityRange range, World world)
+    {
+        this.range = range;
+        this.world = world;
+    }
+    public int opApply(int delegate(ref EntityData data) dg)
+    {
+        return world.forEachEntityInRange(dg, range);
+    }
+}
+
 public struct EntityRange
 {
     public float minx, miny, minz, maxx, maxy, maxz;
@@ -588,7 +602,7 @@ public struct EntityRange
         this.dimension = dimension;
     }
 
-    package bool opBinaryRight(string op)(in EntityData e) if(op == "in")
+    public bool opBinaryRight(string op)(in EntityData e) if(op == "in")
     {
         if(e.dimension != dimension)
             return false;
@@ -605,6 +619,11 @@ public struct EntityRange
         if(e.position.z > maxz)
             return false;
         return true;
+    }
+
+    public IteratableEntityRange iterate(World world)
+    {
+        return IteratableEntityRange(this, world);
     }
 }
 
@@ -643,39 +662,63 @@ private final class Chunk
 
     private int forEachEntityInRangeHelper(LinkedHashMap!EntityNode list, int delegate(ref EntityData data) dg, EntityRange range)
     {
-        static if(true)
-            assert(false, "implement");
-        else
-        for(auto i = list.begin; !i.ended; i++)
+        for(auto i = list.begin; !i.ended;)
         {
             if((*i.value) in range)
             {
                 EntityNode node = i.value;
                 Vector position = node.position;
                 Dimension dimension = node.dimension;
-                int retval = dg(*node);
-                if(node.position != position || node.dimension != dimension || !node.good)
+                int retval;
+                try
                 {
-                    /*if(ChunkPosition(node.position, node.dimension) != position || ) //FIXME(jacob#): finish
-                    {
-                        i.removeAndGoToNext();
-                        world.reinsertEntity(node);
-                    }*/
+                    retval = dg(*node);
                 }
+                finally
+                {
+                    if(node.position != position || node.dimension != dimension || !node.good)
+                    {
+                        if(ChunkPosition(node.position, node.dimension) != this.position || !node.good || getEntityList(ifloor(node.position.y)) !is list)
+                        {
+                            i.removeAndGoToNext();
+                            world.insertEntityInChunk(node);
+                        }
+                        else
+                            i++;
+                    }
+                    else
+                        i++;
+                }
+                if(retval != 0)
+                    return retval;
             }
+            else
+                i++;
         }
+        return 0;
     }
 
     public int forEachEntityInRange(int delegate(ref EntityData data) dg, EntityRange range)
     {
-        static if(true)
-            assert(false, "implement");//FIXME(jacob#): finish
-        else{
-        int miny = ifloor(range.miny / XZ_SIZE);
-        int maxy = iceil(range.maxy / XZ_SIZE);
-        if(miny < 0 || maxy >= Y_SIZE / XZ_SIZE)
+        int minyi = ifloor(range.miny / XZ_SIZE);
+        int maxyi = iceil(range.maxy / XZ_SIZE);
+        if(minyi < 0 || maxyi >= Y_SIZE / XZ_SIZE)
         {
-        }}
+            int retval = forEachEntityInRangeHelper(otherEntities, dg, range);
+            if(retval != 0)
+                return retval;
+        }
+        if(minyi < 0)
+            minyi = 0;
+        if(maxyi > Y_SIZE / XZ_SIZE - 1)
+            maxyi = Y_SIZE / XZ_SIZE - 1;
+        for(int yi = minyi; yi <= maxyi; yi++)
+        {
+            int retval = forEachEntityInRangeHelper(entities[yi], dg, range);
+            if(retval != 0)
+                return retval;
+        }
+        return 0;
     }
 
     public this(World world, ChunkPosition position)
@@ -700,6 +743,18 @@ private final class Chunk
         {
             overallMesh[rl] = null;
             meshCache[rl][y / XZ_SIZE].invalidate(x & MOD_SIZE_MASK, y & MOD_SIZE_MASK, z & MOD_SIZE_MASK);
+        }
+    }
+
+    public void addEntitiesToMesh(LinkedHashMap!EntityNode list, Mesh mesh, RenderLayer rl)
+    {
+        for(auto iter = list.begin; !iter.ended; iter++)
+        {
+            EntityNode data = iter.value;
+            if(data.good)
+            {
+                mesh.add(data.descriptor.getDrawMesh(*data, rl));
+            }
         }
     }
 
@@ -732,6 +787,11 @@ private final class Chunk
             if(!canCache)
                 overallMesh[rl] = null;
         }
+        addEntitiesToMesh(otherEntities, retval, rl);
+        foreach(LinkedHashMap!EntityNode list; entities)
+        {
+            addEntitiesToMesh(list, retval, rl);
+        }
         return retval.seal();
     }
 }
@@ -740,10 +800,15 @@ public final class World
 {
     public static immutable int MAX_HEIGHT = Chunk.Y_SIZE;
     public static immutable ubyte MAX_LIGHTING = 15;
+    public static @property Vector GRAVITY()
+    {
+        return Vector(0, -9.8, 0);
+    }
     private LinkedHashMap!(ChunkPosition, Chunk) chunks;
     package LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent) blockUpdates;
     package LinkedList!BlockUpdateEvent blockUpdatesInZeroTime;
     private double currentTimeInternal = 0;
+    package LinkedHashMap!EntityNode entities;
 
     private @property void currentTime(double t)
     {
@@ -760,12 +825,33 @@ public final class World
         chunks = new LinkedHashMap!(ChunkPosition, Chunk)();
         blockUpdates = new LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent)();
         blockUpdatesInZeroTime = new LinkedList!BlockUpdateEvent();
+        entities = new LinkedHashMap!EntityNode();
     }
 
-    package void reinsertEntity(EntityNode node)
+    private LinkedHashMap!EntityNode getEntityList(EntityNode node)
     {
-        //FIXME(jacob#): implement
-        assert(false, "implement");
+        Chunk c = getOrAddChunk(ChunkPosition(node.position, node.dimension));
+        return c.getEntityList(ifloor(node.position.y));
+    }
+
+    package void insertEntityInChunk(EntityNode node)
+    {
+        if(!node.good)
+        {
+            entities.remove(node);
+            return;
+        }
+        getEntityList(node).set(node, node);
+    }
+
+    public void addEntity(EntityData data)
+    {
+        if(!data.good)
+            return;
+        EntityNode node = new EntityData();
+        *node = data;
+        entities.set(node, node);
+        insertEntityInChunk(node);
     }
 
     package Chunk getOrAddChunk(ChunkPosition chunkPos)
@@ -1001,13 +1087,42 @@ public final class World
         do
         {
             anyUpdates = moveUpdatesToZeroTimeList();
+            runAllZeroTimeUpdates();
         }
         while(anyUpdates);
+    }
+
+    private void moveAllEntities(in double deltaTime)
+    {
+        for(auto iter = entities.begin; !iter.ended;)
+        {
+            EntityNode node = iter.value;
+            LinkedHashMap!EntityNode startList = getEntityList(node);
+            if(node.good)
+                node.descriptor.move(*node, deltaTime);
+            if(!node.good)
+            {
+                startList.remove(node);
+                iter.removeAndGoToNext();
+            }
+            else
+            {
+                LinkedHashMap!EntityNode endList = getEntityList(node);
+                if(endList !is startList)
+                {
+                    startList.remove(node);
+                    endList.set(node, node);
+                }
+                iter++;
+            }
+        }
     }
 
     public void advanceTime(in double amount)
     {
         currentTime = currentTime + amount;
+        checkUpdates();
+        moveAllEntities(amount);
         checkUpdates();
         //TODO (jacob#): finish
     }
@@ -1044,5 +1159,23 @@ public final class World
             }
         }
         //TODO (jacob#): finish
+    }
+
+    package int forEachEntityInRange(int delegate(ref EntityData data) dg, EntityRange range)
+    {
+        int mincx = ifloor(range.minx) & Chunk.FLOOR_SIZE_MASK;
+        int maxcx = ifloor(range.maxx) & Chunk.FLOOR_SIZE_MASK;
+        int mincz = ifloor(range.minz) & Chunk.FLOOR_SIZE_MASK;
+        int maxcz = ifloor(range.maxz) & Chunk.FLOOR_SIZE_MASK;
+        for(int cx = mincx; cx <= maxcx; cx++)
+        {
+            for(int cz = mincz; cz <= maxcz; cz++)
+            {
+                int retval = getOrAddChunk(ChunkPosition(cx, cz, range.dimension)).forEachEntityInRange(dg, range);
+                if(retval != 0)
+                    return retval;
+            }
+        }
+        return 0;
     }
 }

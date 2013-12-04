@@ -87,4 +87,9 @@ public final class GameStoreStream : Writer
             entityDescriptors[ed.name] = nextEntityDescriptor++;
         }
 	}
+
+	public void write(Dimension d)
+	{
+	    write(cast(ubyte)d);
+	}
 }

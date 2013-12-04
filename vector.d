@@ -51,7 +51,12 @@ public struct Vector
 		return this;
 	}
 
-	public Vector opBinary(string op)(ref const Vector rt) const
+	public Vector opBinary(string op)(const Vector rt) const
+	{
+		return mixin("Vector(x " ~ op ~ " rt.x, y " ~ op ~ " rt.y, z " ~ op ~ " rt.z)");
+	}
+
+	public Vector opBinary(string op)(Vector rt)
 	{
 		return mixin("Vector(x " ~ op ~ " rt.x, y " ~ op ~ " rt.y, z " ~ op ~ " rt.z)");
 	}
@@ -61,11 +66,11 @@ public struct Vector
 		return x == rt.x && y == rt.y && z == rt.z;
 	}
 
-	public void opOpAssign(string op)(ref const Vector rt)
+	public void opOpAssign(string op)(const Vector rt)
 	{
-		mixin("x " ~ op ~ "= rt.x");
-		mixin("y " ~ op ~ "= rt.y");
-		mixin("z " ~ op ~ "= rt.z");
+		mixin("x " ~ op ~ "= rt.x;");
+		mixin("y " ~ op ~ "= rt.y;");
+		mixin("z " ~ op ~ "= rt.z;");
 	}
 
     public static Vector normalize(in float x, in float y, in float z)

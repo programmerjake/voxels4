@@ -31,6 +31,7 @@ import std.stdio;
 import std.math;
 import vector;
 import resource.texture_atlas;
+import entity.block;
 
 void dumpPixel(int x, int y)
 {
@@ -58,12 +59,18 @@ int main(string[] args)
             }
         }
     }
+    w.addEntity(BlockEntity.make(Vector(0, 64, 2), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(0, 64, -2), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(-2, 64, 0), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(2, 64, 0), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.advanceTime(0);
     while(!done)
     {
 		Display.initFrame();
 		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
 		Display.flip();
 		Display.handleEvents(null);
+		w.advanceTime(Display.frameDeltaTime);
 		static int i = 0;
 		if(++i >= Display.averageFPS)
 		{

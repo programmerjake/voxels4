@@ -74,6 +74,13 @@ public abstract class StoneType : BlockDescriptor
         return TransformedMesh(theMesh[nx][px][ny][py][nz][pz]);
     }
 
+    public override TransformedMesh getEntityDrawMesh(BlockData data, RenderLayer rl)
+    {
+        if(rl != RenderLayer.Opaque)
+            return TransformedMesh();
+        return TransformedMesh(theMesh[1][1][1][1][1][1], Matrix.translate(-0.5, 0, -0.5).concat(Matrix.scale(0.25)));
+    }
+
     public override bool graphicsChanges(BlockPosition pos)
     {
         return false;

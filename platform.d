@@ -143,6 +143,17 @@ private @property double instantaneousFPS()
 	}
 }
 
+private @property double frameDeltaTime()
+{
+    synchronized(FPSSyncObject)
+    {
+		long hnsecs = (*cast(TickDuration *)&lastFlipTime - *cast(TickDuration *)&oldLastFlipTime).hnsecs();
+		if(hnsecs <= 0)
+			return 1 / averageFPSInternal;
+		return hnsecs / 1e7;
+    }
+}
+
 private shared float averageFPSInternal = defaultFPS;
 private immutable float FPSUpdateFactor = 0.1f;
 private immutable shared Object FPSSyncObject;
@@ -932,6 +943,11 @@ public struct Display
 	public static @property double instantaneousFPS()
 	{
 		return .instantaneousFPS;
+	}
+
+	public static @property double frameDeltaTime()
+	{
+		return .frameDeltaTime;
 	}
 
 	public static @property float averageFPS()

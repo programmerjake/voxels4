@@ -50,6 +50,7 @@ public abstract class BlockDescriptor
     }
 
     public abstract TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl);
+    public abstract TransformedMesh getEntityDrawMesh(BlockData data, RenderLayer rl);
     protected abstract BlockData readInternal(GameLoadStream gls);
     public abstract bool graphicsChanges(BlockPosition pos);
     public abstract bool isSideBlocked(BlockData data, BlockFace face);
