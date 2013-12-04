@@ -1136,8 +1136,8 @@ public final class World
 
     private void drawChunk(Chunk c, RenderLayer rl)
     {
-        Renderer.render(c.makeMesh(rl));
-        Renderer.render(c.makeEntitiesMesh(rl));
+        Renderer.render(lightMesh(c.makeMesh(rl)));
+        Renderer.render(lightMesh(c.makeEntitiesMesh(rl)));
     }
 
     public uint viewDistance = 16;
@@ -1185,5 +1185,9 @@ public final class World
             }
         }
         return 0;
+    }
+
+    private Mesh lightMesh(Mesh mesh)
+    {
     }
 }

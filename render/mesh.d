@@ -492,6 +492,13 @@ public final class Mesh
         return EMPTY_;
 	}
 
+	public void clear()
+	{
+		if(sealed)
+			throw new SealedException();
+        trianglesUsed = 0;
+	}
+
 	public void dump()
 	{
         writefln("Mesh : image:%s length:%s", cast(void *)texture, trianglesUsed);

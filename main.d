@@ -81,10 +81,6 @@ int main(string[] args)
 			//Display.title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;
-			if(type)
-                w.setBlock(-5, 64, 0, Dimension.Overworld, BlockData(Stone.STONE));
-            else
-                w.setBlock(-5, 64, 0, Dimension.Overworld, BlockData(Bedrock.BEDROCK));
             w.addEntity(BlockEntity.make(Vector(0.5, 64, 2.5), Dimension.Overworld, BlockData(Stone.STONE)));
             w.addEntity(BlockEntity.make(Vector(0.5, 64, -1.5), Dimension.Overworld, BlockData(Stone.STONE)));
             w.addEntity(BlockEntity.make(Vector(-1.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
