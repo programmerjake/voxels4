@@ -18,6 +18,7 @@
 module entity.block;
 import entity.entity;
 import block.block;
+import std.stdio;
 
 private immutable float blockSize = 0.25;
 
@@ -95,6 +96,11 @@ public final class BlockEntity : EntityDescriptor
         data_data.velocity += deltaTime * World.GRAVITY;
         data.position += deltaTime * data_data.velocity;
         data_data.theta += deltaTime * PI;
+        if(data.position.y < -64)
+        {
+            data.descriptor = null;
+            return;
+        }
         //FIXME(jacob#): change to actual implementation
     }
 

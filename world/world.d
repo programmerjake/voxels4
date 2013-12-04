@@ -28,6 +28,7 @@ import platform;
 import vector;
 import std.conv;
 import entity.entity;
+import std.stdio;
 
 public enum Dimension
 {
@@ -758,6 +759,17 @@ private final class Chunk
         }
     }
 
+    public Mesh makeEntitiesMesh(RenderLayer rl)
+    {
+        Mesh retval = new Mesh();
+        addEntitiesToMesh(otherEntities, retval, rl);
+        foreach(LinkedHashMap!EntityNode list; entities)
+        {
+            addEntitiesToMesh(list, retval, rl);
+        }
+        return retval;
+    }
+
     public Mesh makeMesh(RenderLayer rl)
     {
         if(overallMesh[rl] !is null)
@@ -786,11 +798,6 @@ private final class Chunk
             retval.add(meshCache[rl][i].makeMesh(canCache, &makeMeshBlock));
             if(!canCache)
                 overallMesh[rl] = null;
-        }
-        addEntitiesToMesh(otherEntities, retval, rl);
-        foreach(LinkedHashMap!EntityNode list; entities)
-        {
-            addEntitiesToMesh(list, retval, rl);
         }
         return retval.seal();
     }
@@ -1130,6 +1137,7 @@ public final class World
     private void drawChunk(Chunk c, RenderLayer rl)
     {
         Renderer.render(c.makeMesh(rl));
+        Renderer.render(c.makeEntitiesMesh(rl));
     }
 
     public uint viewDistance = 16;

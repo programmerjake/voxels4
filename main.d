@@ -41,7 +41,6 @@ void dumpPixel(int x, int y)
 
 int main(string[] args)
 {
-    dumpPixel(0, 16);
     bool done = false;
     World w = new World();
     for(int x = -20; x <= 20; x++)
@@ -59,18 +58,22 @@ int main(string[] args)
             }
         }
     }
-    w.addEntity(BlockEntity.make(Vector(0, 64, 2), Dimension.Overworld, BlockData(Stone.STONE)));
-    w.addEntity(BlockEntity.make(Vector(0, 64, -2), Dimension.Overworld, BlockData(Stone.STONE)));
-    w.addEntity(BlockEntity.make(Vector(-2, 64, 0), Dimension.Overworld, BlockData(Stone.STONE)));
-    w.addEntity(BlockEntity.make(Vector(2, 64, 0), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(0.5, 64, 2.5), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(0.5, 64, -1.5), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(-1.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
+    w.addEntity(BlockEntity.make(Vector(2.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
     w.advanceTime(0);
+    bool doMove = false;
     while(!done)
     {
 		Display.initFrame();
 		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
 		Display.flip();
 		Display.handleEvents(null);
-		w.advanceTime(Display.frameDeltaTime);
+		if(doMove)
+            w.advanceTime(Display.frameDeltaTime);
+        else
+            doMove = true;
 		static int i = 0;
 		if(++i >= Display.averageFPS)
 		{
@@ -82,6 +85,10 @@ int main(string[] args)
                 w.setBlock(-5, 64, 0, Dimension.Overworld, BlockData(Stone.STONE));
             else
                 w.setBlock(-5, 64, 0, Dimension.Overworld, BlockData(Bedrock.BEDROCK));
+            w.addEntity(BlockEntity.make(Vector(0.5, 64, 2.5), Dimension.Overworld, BlockData(Stone.STONE)));
+            w.addEntity(BlockEntity.make(Vector(0.5, 64, -1.5), Dimension.Overworld, BlockData(Stone.STONE)));
+            w.addEntity(BlockEntity.make(Vector(-1.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
+            w.addEntity(BlockEntity.make(Vector(2.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
 		}
 	}
 	return 0;
