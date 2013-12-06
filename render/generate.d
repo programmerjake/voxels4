@@ -18,32 +18,35 @@
 module render.generate;
 public import render.mesh;
 
-public Mesh invert(Mesh input)
+public Mesh invert(Mesh dest, Mesh input)
 {
+    dest.clear();
 	if(input.length <= 0)
-		return new Mesh(input);
-	Triangle[] triangles = new Triangle[input.length];
+		return dest;
+    Triangle tri;
 	foreach(int i, Triangle t; input)
 	{
 		for(int j = 0, k = 3 - 1; j < 3; j++, k--)
 		{
-			triangles[i].p[j] = t.p[k];
-			triangles[i].c[j] = t.c[k];
-			triangles[i].u[j] = t.u[k];
-			triangles[i].v[j] = t.v[k];
+			tri.p[j] = t.p[k];
+			tri.c[j] = t.c[k];
+			tri.u[j] = t.u[k];
+			tri.v[j] = t.v[k];
 		}
+        TextureDescriptor td = TextureDescriptor(input.texture);
+        dest.add(td, tri);
 	}
-	return new Mesh(input.texture, triangles);
+	return dest;
 }
 
-public TransformedMesh invert(TransformedMesh input)
+public TransformedMesh invert(Mesh dest, TransformedMesh input)
 {
 	if(input.mesh is null)
 	{
 		return input;
 	}
 
-	return TransformedMesh(invert(input.mesh), input.transform);
+	return TransformedMesh(invert(dest, input.mesh), input.transform);
 }
 
 public struct Generate

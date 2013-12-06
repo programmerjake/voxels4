@@ -66,6 +66,9 @@ public abstract class PlayerInputEvent
         AttackButtonDown,
         AttackButtonUp,
         ViewChange,
+        HotBarMoveLeft,
+        HotBarMoveRight,
+        HotBarSelect,
     }
     public immutable Type type;
     public this(Type type)
@@ -73,6 +76,28 @@ public abstract class PlayerInputEvent
         this.type = type;
     }
     public abstract void dispatch(Player p);
+    public static final class UseButtonPress : PlayerInputEvent
+    {
+        this()
+        {
+            super(Type.UseButtonPress);
+        }
+        public abstract void dispatch(Player p)
+        {
+            //FIXME(jacob#): finish
+        }
+    }
+    public static final class UseButtonPress : PlayerInputEvent
+    {
+        this()
+        {
+            super(Type.UseButtonPress);
+        }
+        public abstract void dispatch(Player p)
+        {
+            //FIXME(jacob#): finish
+        }
+    }
 }
 
 //FIXME (jacob#): finish PlayerInputEvent

@@ -51,7 +51,7 @@ int main(string[] args)
         {
             for(int z = -20; z <= 20; z++)
             {
-                if(x * x + (y - 64) * (y - 64) + z * z < 5 * 5 || y >= 65)
+                if(x * x + (y - 64) * (y - 64) + z * z < 10 * 10 || y >= 65)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Air.AIR));
                 else if(y >= 64)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Stone.STONE));
@@ -68,14 +68,19 @@ int main(string[] args)
     bool doMove = false;
     string title = "";
     Mesh textMesh = new Mesh();
+    Mesh textInvMesh = new Mesh();
     while(!done)
     {
 		Display.initFrame();
 		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
 		Display.initOverlay();
 		textMesh.clear();
-		Text.render(textMesh, Matrix.translate(-20 * Display.scaleX, 20 * Display.scaleY - Text.height(title), -20), Color.GREEN, title);
+		Matrix textTransform = Matrix.translate(-0.5 * Text.width(title), -0.5 * Text.height(title), 0);
+		textTransform = textTransform.concat(Matrix.rotateY(((Display.timer * 0.5) % 1) * (PI * 2)));
+		textTransform = textTransform.concat(Matrix.translate(0, 0, -20));
+		Text.render(textMesh, textTransform, Color.GREEN, title);
 		Renderer.render(textMesh);
+		Renderer.render(invert(textInvMesh, textMesh));
 		Display.flip();
 		Display.handleEvents(null);
 		if(doMove)

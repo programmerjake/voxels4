@@ -337,7 +337,7 @@ public struct Text
         }
     }
 
-    public static uint width(in const(char)[] text, uint tabWidth = 8)
+    public static int width(in const(char)[] text, uint tabWidth = 8)
     {
         uint x = 0, y = 0, w = 0, h = 0;
         foreach(dchar ch; text)
@@ -347,7 +347,7 @@ public struct Text
         return w;
     }
 
-    public static uint height(in const(char)[] text, uint tabWidth = 8)
+    public static int height(in const(char)[] text, uint tabWidth = 8)
     {
         uint x = 0, y = 0, w = 0, h = 0;
         foreach(dchar ch; text)
@@ -357,7 +357,7 @@ public struct Text
         return h;
     }
 
-    public static uint xPos(in const(char)[] text, uint tabWidth = 8)
+    public static int xPos(in const(char)[] text, uint tabWidth = 8)
     {
         uint x = 0, y = 0, w = 0, h = 0;
         foreach(dchar ch; text)
@@ -367,7 +367,7 @@ public struct Text
         return x;
     }
 
-    public static uint yPos(in const(char)[] text, uint tabWidth = 8)
+    public static int yPos(in const(char)[] text, uint tabWidth = 8)
     {
         uint x = 0, y = 0, w = 0, h = 0;
         foreach(dchar ch; text)

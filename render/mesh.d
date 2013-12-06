@@ -276,9 +276,9 @@ public final class Mesh
 			this.textureInternal = texture.image;
 		else if(this.texture !is texture.image)
             throw new ImageNotSameException();
-        int v = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
-        int c = COLORS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
-        int t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+        size_t v = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+        size_t c = COLORS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+        size_t t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
         vertices[v++] = tri.p[0].x;
         vertices[v++] = tri.p[0].y;
         vertices[v++] = tri.p[0].z;
