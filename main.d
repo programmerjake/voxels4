@@ -32,6 +32,8 @@ import std.math;
 import vector;
 import resource.texture_atlas;
 import entity.block;
+import render.text;
+import render.generate;
 
 void dumpPixel(int x, int y)
 {
@@ -64,10 +66,16 @@ int main(string[] args)
     w.addEntity(BlockEntity.make(Vector(2.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
     w.advanceTime(0);
     bool doMove = false;
+    string title = "";
+    Mesh textMesh = new Mesh();
     while(!done)
     {
 		Display.initFrame();
 		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
+		Display.initOverlay();
+		textMesh.clear();
+		Text.render(textMesh, Matrix.translate(-20 * Display.scaleX, 20 * Display.scaleY - Text.height(title), -20), Color.GREEN, title);
+		Renderer.render(textMesh);
 		Display.flip();
 		Display.handleEvents(null);
 		if(doMove)
@@ -78,7 +86,7 @@ int main(string[] args)
 		if(++i >= Display.averageFPS)
 		{
 			i = 0;
-			//Display.title = format("FPS : %g", Display.averageFPS);
+			title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;
             w.addEntity(BlockEntity.make(Vector(0.5, 64, 2.5), Dimension.Overworld, BlockData(Stone.STONE)));

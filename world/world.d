@@ -1188,6 +1188,8 @@ public final class World
                 }
             }
         }
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
         //TODO (jacob#): finish
     }
 

@@ -18,23 +18,23 @@
 module resource.texture_atlas;
 public import render.texture_descriptor;
 
-public class TextureAtlas
+public final class TextureAtlas
 {
 	private immutable float minU, maxU, minV, maxV;
 	public immutable int left, top, width, height;
 	public static immutable int textureXRes = 512, textureYRes = 256;
 	private static Image textureInternal = null;
+    public static immutable float pixelOffset = 0.1f;
 	package immutable this(int left, int top, int width, int height)
 	{
         this.left = left;
 		this.top = top;
         this.width = width;
         this.height = height;
-        immutable float offset = 0.1f;
-        minU = (left + offset) / textureXRes;
-        maxU = (left + width - offset) / textureXRes;
-        minV = 1 - (top + height - offset) / textureYRes;
-        maxV = 1 - (top + offset) / textureYRes;
+        minU = (left + pixelOffset) / textureXRes;
+        maxU = (left + width - pixelOffset) / textureXRes;
+        minV = 1 - (top + height - pixelOffset) / textureYRes;
+        maxV = 1 - (top + pixelOffset) / textureYRes;
 	}
 	public TextureDescriptor opCast(T : TextureDescriptor)() const
 	{
@@ -43,6 +43,10 @@ public class TextureAtlas
 	public @property TextureDescriptor td() const
 	{
 		return TextureDescriptor(texture, minU, maxU, minV, maxV);
+	}
+	public @property TextureDescriptor tdNoOffset() const
+	{
+	    return TextureDescriptor(texture, cast(float)left / textureXRes, cast(float)(left + width) / textureXRes, 1 - cast(float)(top + height) / textureYRes, 1 - cast(float)top / textureYRes);
 	}
 	public static @property Image texture()
 	{

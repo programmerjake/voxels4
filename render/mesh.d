@@ -253,6 +253,7 @@ public final class Mesh
 	{
 		if(sealed)
 			throw new SealedException();
+        assert(mesh.mesh !is this);
 		if(mesh.mesh is null || mesh.mesh.trianglesUsed <= 0)
 			return this;
 		if(this.texture is null)
@@ -278,6 +279,7 @@ public final class Mesh
 	{
 		if(sealed)
 			throw new SealedException();
+        assert(mesh !is this);
 		if(mesh is null || mesh.trianglesUsed <= 0)
 			return this;
         if(this.texture is null)
@@ -293,6 +295,73 @@ public final class Mesh
 		return this;
 	}
 
+
+	public Mesh add(TransformedMesh mesh, Color factor)
+	{
+		if(sealed)
+			throw new SealedException();
+        assert(mesh.mesh !is this);
+		if(mesh.mesh is null || mesh.mesh.trianglesUsed <= 0)
+			return this;
+		if(this.texture is null)
+			this.textureInternal = mesh.mesh.texture;
+		else if(this.texture !is mesh.mesh.texture)
+            throw new ImageNotSameException();
+        checkForSpace(mesh.mesh.trianglesUsed);
+        immutable size_t finalSize = trianglesUsed + mesh.mesh.trianglesUsed;
+        for(size_t i = trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * VERTICES_ELEMENTS_PER_TRIANGLE; i += 3, j += 3)
+        {
+			Vector v = mesh.transform.apply(Vector(mesh.mesh.vertices[j], mesh.mesh.vertices[j + 1], mesh.mesh.vertices[j + 2]));
+			vertices[i] = v.x;
+			vertices[i + 1] = v.y;
+			vertices[i + 2] = v.z;
+		}
+		textureCoords[trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE .. finalSize * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE] = mesh.mesh.textureCoords[0 .. mesh.mesh.trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE];
+		float cr = factor.rf;
+		float cg = factor.gf;
+		float cb = factor.bf;
+		float ca = factor.af;
+		for(size_t i = trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * COLORS_ELEMENTS_PER_TRIANGLE; i += 4, j += 4)
+        {
+            colors[i + 0] = cr * mesh.mesh.colors[j + 0];
+            colors[i + 1] = cg * mesh.mesh.colors[j + 1];
+            colors[i + 2] = cb * mesh.mesh.colors[j + 2];
+            colors[i + 3] = ca * mesh.mesh.colors[j + 3];
+        }
+		trianglesUsed = finalSize;
+		return this;
+	}
+
+	public Mesh add(Mesh mesh, Color factor)
+	{
+		if(sealed)
+			throw new SealedException();
+        assert(mesh !is this);
+		if(mesh is null || mesh.trianglesUsed <= 0)
+			return this;
+        if(this.texture is null)
+			this.textureInternal = mesh.texture;
+		else if(this.texture !is mesh.texture)
+            throw new ImageNotSameException();
+        checkForSpace(mesh.trianglesUsed);
+        immutable size_t finalSize = trianglesUsed + mesh.trianglesUsed;
+		vertices[trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE .. finalSize * VERTICES_ELEMENTS_PER_TRIANGLE] = mesh.vertices[0 .. mesh.trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE];
+		textureCoords[trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE .. finalSize * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE] = mesh.textureCoords[0 .. mesh.trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE];
+		float cr = factor.rf;
+		float cg = factor.gf;
+		float cb = factor.bf;
+		float ca = factor.af;
+		for(size_t i = trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * COLORS_ELEMENTS_PER_TRIANGLE; i += 4, j += 4)
+        {
+            colors[i + 0] = cr * mesh.colors[j + 0];
+            colors[i + 1] = cg * mesh.colors[j + 1];
+            colors[i + 2] = cb * mesh.colors[j + 2];
+            colors[i + 3] = ca * mesh.colors[j + 3];
+        }
+		trianglesUsed = finalSize;
+		return this;
+	}
+
 	public Mesh seal()
 	{
 		sealed = true;
@@ -303,7 +372,7 @@ public final class Mesh
     {
         if(this.sealed)
             throw new SealedException();
-        for(int i = 0; i < this.trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE;)
+        for(size_t i = 0; i < this.trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE;)
         {
             float x = this.vertices[i];
             float y = this.vertices[i + 1];
@@ -313,6 +382,24 @@ public final class Mesh
             this.vertices[i++] = v.x;
             this.vertices[i++] = v.y;
             this.vertices[i++] = v.z;
+        }
+        return this;
+    }
+
+    public Mesh multiplyColor(Color factor)
+    {
+        if(this.sealed)
+            throw new SealedException();
+        float r = factor.rf;
+        float g = factor.gf;
+        float b = factor.bf;
+        float a = factor.af;
+        for(size_t i = 0; i < this.trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE;)
+        {
+            this.colors[i++] *= r;
+            this.colors[i++] *= g;
+            this.colors[i++] *= b;
+            this.colors[i++] *= a;
         }
         return this;
     }
@@ -502,12 +589,16 @@ public final class Mesh
 	public void dump()
 	{
         writefln("Mesh : image:%s length:%s", cast(void *)texture, trianglesUsed);
-        writefln("{");
+        writef("{");
         foreach(int i, Triangle tri; this)
         {
-            writefln("%s:\t<%s, %s, %s>, <%s, %s, %s>, <%s, %s, %s>", i, tri.p[0].x, tri.p[0].y, tri.p[0].z, tri.p[1].x, tri.p[1].y, tri.p[1].z, tri.p[2].x, tri.p[2].y, tri.p[2].z);
+            writef("\n%s:\t", i);
+            for(int j = 0; j < 3; j++)
+            {
+                writef("<%s, %s, %s> (%s, %s) RGBA(%02X, %02X, %02X, %02X)", tri.p[j].x, tri.p[j].y, tri.p[j].z, tri.u[j], tri.v[j], tri.c[j].r, tri.c[j].g, tri.c[j].b, tri.c[j].a);
+            }
         }
-        writefln("}");
+        writefln("\n}");
 	}
 }
 

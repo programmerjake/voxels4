@@ -92,7 +92,7 @@ static this()
 	}
 	else
 	{
-        xResInternal = 1280;
+        xResInternal = 768;
         yResInternal = 1024;
 	}
 	enforceSDL(0 == SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8), "can't call SDL_GL_SetAttribute : %s");
@@ -1014,5 +1014,11 @@ public struct Display
         glEnableClientState(GL_COLOR_ARRAY);
         glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         glEnableClientState(GL_VERTEX_ARRAY);
+	}
+
+	public static void initOverlay()
+	{
+        glDepthMask(GL_TRUE);
+	    glClear(GL_DEPTH_BUFFER_BIT);
 	}
 }

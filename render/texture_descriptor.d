@@ -39,8 +39,8 @@ public struct TextureDescriptor
 		return this.image !is null;
 	}
 
-	public TextureDescriptor subTexture(const float minU, const float maxU, const float minV, const float maxV) const
+	public TextureDescriptor subTexture(const float minU, const float maxU, const float minV, const float maxV)
 	{
-		return TextureDescriptor(*cast(Image *)&image, interpolate(minU, this.minU, this.maxU), interpolate(maxU, this.minU, this.maxU), interpolate(minV, this.minV, this.maxV), interpolate(maxV, this.minV, this.maxV));
+		return TextureDescriptor(image, interpolate(minU, this.minU, this.maxU), interpolate(maxU, this.minU, this.maxU), interpolate(minV, this.minV, this.maxV), interpolate(maxV, this.minV, this.maxV));
 	}
 }
