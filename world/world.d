@@ -431,6 +431,7 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
 {
     static assert(size >= minSize);
     private Mesh mesh = null;
+    private Mesh oldMesh = null;
     static if(size > minSize)
     {
 
@@ -516,7 +517,11 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
         static if(size > minSize)
         {
             bool canPartCache;
-            mesh = new Mesh();
+            if(oldMesh is null)
+                oldMesh = new Mesh();
+            else
+                oldMesh.clear();
+            mesh = oldMesh;
             mesh.add(nnn.makeMesh(canPartCache, makeMeshBottom));
             if(!canPartCache)
                 canCache = false;
@@ -541,7 +546,6 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
             mesh.add(ppp.makeMesh(canPartCache, makeMeshBottom));
             if(!canPartCache)
                 canCache = false;
-            mesh.seal();
             Mesh retval = mesh;
             if(!canCache)
                 mesh = null;
@@ -550,7 +554,11 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
         else
         {
             bool canPartCache;
-            mesh = new Mesh();
+            if(oldMesh is null)
+                oldMesh = new Mesh();
+            else
+                oldMesh.clear();
+            mesh = oldMesh;
             for(uint z = zOrigin; z < zOrigin + size; z++)
             {
                 for(uint y = yOrigin; y < yOrigin + size; y++)
@@ -563,7 +571,6 @@ private struct MeshOctTree(uint minSize, uint size, uint xOrigin, uint yOrigin, 
                     }
                 }
             }
-            mesh.seal();
             Mesh retval = mesh;
             if(!canCache)
                 mesh = null;
@@ -653,6 +660,7 @@ private final class Chunk
     public Mesh[RenderLayer.max + 1] overallMesh = null;
     private LinkedHashMap!EntityNode[Y_SIZE / XZ_SIZE] entities;
     private LinkedHashMap!EntityNode otherEntities;
+    private Mesh blockMeshCache = null;
 
     public LinkedHashMap!EntityNode getEntityList(int y)
     {
@@ -759,9 +767,14 @@ private final class Chunk
         }
     }
 
+    private Mesh[RenderLayer.max + 1] oldEntitiesMesh;
+
     public Mesh makeEntitiesMesh(RenderLayer rl)
     {
-        Mesh retval = new Mesh();
+        if(oldEntitiesMesh[rl] is null)
+            oldEntitiesMesh[rl] = new Mesh();
+        oldEntitiesMesh[rl].clear();
+        Mesh retval = oldEntitiesMesh[rl];
         addEntitiesToMesh(otherEntities, retval, rl);
         foreach(LinkedHashMap!EntityNode list; entities)
         {
@@ -770,12 +783,19 @@ private final class Chunk
         return retval;
     }
 
+    private Mesh[RenderLayer.max + 1] oldOverallMesh;
+
     public Mesh makeMesh(RenderLayer rl)
     {
         if(overallMesh[rl] !is null)
             return overallMesh[rl];
-        Mesh retval = new Mesh();
+        if(oldOverallMesh[rl] is null)
+            oldOverallMesh[rl] = new Mesh();
+        oldOverallMesh[rl].clear();
+        Mesh retval = oldOverallMesh[rl];
         overallMesh[rl] = retval;
+        if(blockMeshCache is null)
+            blockMeshCache = new Mesh();
         for(int yBlock = 0, i = 0; yBlock < Y_SIZE; yBlock += XZ_SIZE, i++)
         {
             Mesh makeMeshBlock(int x, int y, int z, ref bool canCache)
@@ -792,14 +812,16 @@ private final class Chunk
                 TransformedMesh drawMesh = bd.getDrawMesh(pos, rl);
                 if(drawMesh.mesh is null)
                     return Mesh.EMPTY;
-                return new Mesh(TransformedMesh(drawMesh, Matrix.translate(x + position.x, y + yBlock, z + position.z)));
+                blockMeshCache.clear();
+                Mesh retval = blockMeshCache;
+                return retval.add(TransformedMesh(drawMesh, Matrix.translate(x + position.x, y + yBlock, z + position.z)));
             }
             bool canCache;
             retval.add(meshCache[rl][i].makeMesh(canCache, &makeMeshBlock));
             if(!canCache)
                 overallMesh[rl] = null;
         }
-        return retval.seal();
+        return retval;
     }
 }
 
@@ -1189,5 +1211,7 @@ public final class World
 
     private Mesh lightMesh(Mesh mesh)
     {
+        //TODO(jacob#): finish
+        return mesh;
     }
 }
