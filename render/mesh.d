@@ -38,6 +38,24 @@ public struct Triangle
 		u[] = [u1, u2, u3];
 		v[] = [v1, v2, v3];
 	}
+
+	public @property Vector normal()
+	{
+	    return normalize(cross(p[1] - p[0], p[2] - p[0]));
+	}
+
+	public void transform(Matrix transform)
+	{
+	    p[0] = transform.apply(p[0]);
+	    p[1] = transform.apply(p[1]);
+	    p[2] = transform.apply(p[2]);
+	}
+}
+
+public Triangle transform(Triangle tri, Matrix transform)
+{
+    tri.transform(transform);
+    return tri;
 }
 
 public struct TransformedMesh
@@ -247,6 +265,49 @@ public final class Mesh
 		colors = dupFloatArray(rt.colors);
 		trianglesAllocated = rt.trianglesAllocated;
 		trianglesUsed = rt.trianglesUsed;
+	}
+
+	public Mesh add(TextureDescriptor texture, Triangle tri)
+	{
+		if(sealed)
+			throw new SealedException();
+        checkForSpace(1);
+		if(this.texture is null)
+			this.textureInternal = texture.image;
+		else if(this.texture !is texture.image)
+            throw new ImageNotSameException();
+        int v = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+        int c = COLORS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+        int t = TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+        vertices[v++] = tri.p[0].x;
+        vertices[v++] = tri.p[0].y;
+        vertices[v++] = tri.p[0].z;
+        vertices[v++] = tri.p[1].x;
+        vertices[v++] = tri.p[1].y;
+        vertices[v++] = tri.p[1].z;
+        vertices[v++] = tri.p[2].x;
+        vertices[v++] = tri.p[2].y;
+        vertices[v++] = tri.p[2].z;
+        colors[c++] = tri.c[0].rf;
+        colors[c++] = tri.c[0].gf;
+        colors[c++] = tri.c[0].bf;
+        colors[c++] = tri.c[0].af;
+        colors[c++] = tri.c[1].rf;
+        colors[c++] = tri.c[1].gf;
+        colors[c++] = tri.c[1].bf;
+        colors[c++] = tri.c[1].af;
+        colors[c++] = tri.c[2].rf;
+        colors[c++] = tri.c[2].gf;
+        colors[c++] = tri.c[2].bf;
+        colors[c++] = tri.c[2].af;
+        textureCoords[t++] = interpolate(tri.u[0], texture.minU, texture.maxU);
+        textureCoords[t++] = interpolate(tri.v[0], texture.minV, texture.maxV);
+        textureCoords[t++] = interpolate(tri.u[1], texture.minU, texture.maxU);
+        textureCoords[t++] = interpolate(tri.v[1], texture.minV, texture.maxV);
+        textureCoords[t++] = interpolate(tri.u[2], texture.minU, texture.maxU);
+        textureCoords[t++] = interpolate(tri.v[2], texture.minV, texture.maxV);
+        trianglesUsed++;
+        return this;
 	}
 
 	public Mesh add(TransformedMesh mesh)
@@ -579,11 +640,12 @@ public final class Mesh
         return EMPTY_;
 	}
 
-	public void clear()
+	public Mesh clear()
 	{
 		if(sealed)
 			throw new SealedException();
         trianglesUsed = 0;
+        return this;
 	}
 
 	public void dump()

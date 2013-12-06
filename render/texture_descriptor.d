@@ -34,6 +34,15 @@ public struct TextureDescriptor
         this.maxV = maxV;
 	}
 
+	public this(Image image)
+	{
+	    this.image = image;
+	    minU = 0;
+	    maxU = 1;
+	    minV = 0;
+	    maxV = 1;
+	}
+
 	public bool opCast(T : bool)() const
 	{
 		return this.image !is null;

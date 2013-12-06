@@ -1211,9 +1211,27 @@ public final class World
         return 0;
     }
 
+    private Mesh lightMeshRetval = null;
+
     private Mesh lightMesh(Mesh mesh)
     {
+        static immutable Vector light = normalize(Vector(1, 1.2, -0.7));
+        if(lightMeshRetval is null)
+            lightMeshRetval = new Mesh();
+        Mesh retval = lightMeshRetval.clear();
+        TextureDescriptor texture = TextureDescriptor(mesh.texture);
+        foreach(Triangle tri; mesh)
+        {
+            Vector normal = tri.normal;
+            float s = dot(normal, light);
+            if(s < 0) s = 0;
+            s = 0.4 + s * 0.6;
+            tri.c[0] = scale(tri.c[0], s);
+            tri.c[1] = scale(tri.c[1], s);
+            tri.c[2] = scale(tri.c[2], s);
+            retval.add(texture, tri);
+        }
         //TODO(jacob#): finish
-        return mesh;
+        return retval;
     }
 }

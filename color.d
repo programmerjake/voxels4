@@ -132,3 +132,8 @@ public struct Color
 		return RGBAf(rf * foregroundOpacity + bkgnd.rf * foregroundTransparency, gf * foregroundOpacity + bkgnd.gf * foregroundTransparency, bf * foregroundOpacity + bkgnd.bf * foregroundTransparency, 1 - (1 - bkgnd.af) * foregroundTransparency);
 	}
 }
+
+public Color scale(Color c, float s)
+{
+    return Color.RGBAf(c.rf * s, c.gf * s, c.bf * s, c.af);
+}
