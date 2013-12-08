@@ -17,7 +17,8 @@
  */
 module util;
 
-import std.c.math;
+import std.math;
+import std.random;
 
 template limit(T)
 {
@@ -48,16 +49,40 @@ float convertFromUByteToFloat(ubyte v)
 
 int ifloor(float v)
 {
-	if(v < 0)
-		return -cast(int)-v;
-	return cast(int)v;
+    static if(true)
+    {
+        return cast(int)floor(v);
+    }
+    else
+    {
+        if(v < 0)
+            return -cast(int)-v;
+        return cast(int)v;
+    }
 }
 
 int iceil(float v)
 {
-	if(v > 0)
-		return -cast(int)-v;
-	return cast(int)v;
+    static if(true)
+    {
+        return cast(int)ceil(v);
+    }
+    else
+    {
+        if(v > 0)
+            return -cast(int)-v;
+        return cast(int)v;
+    }
+}
+
+float frandom(float min, float max)
+{
+    return uniform(min, max);
+}
+
+float frandom(float max = 1.0)
+{
+    return frandom(0.0, max);
 }
 
 template interpolate(T)

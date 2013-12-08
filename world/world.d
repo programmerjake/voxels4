@@ -158,7 +158,36 @@ public struct BlockPosition
         this.chunkIndex = rt.chunkIndex;
     }
 
-    public void move(in int dx, in int dy, in int dz)
+    public static struct BlockPositionPosition
+    {
+        public immutable int x, y, z;
+        public immutable Dimension dimension;
+        public @disable this();
+        package this(int x, int y, int z, Dimension dimension)
+        {
+            this.x = x;
+            this.y = y;
+            this.z = z;
+            this.dimension = dimension;
+        }
+    }
+
+    public @property BlockPositionPosition position()
+    {
+        return BlockPositionPosition(x, y, z, dimension);
+    }
+
+    public void moveTo(in int x, in int y, in int z)
+    {
+        moveBy(x - this.x, y - this.y, z - this.z);
+    }
+
+    public void moveTo(Vector p)
+    {
+        moveTo(ifloor(p.x), ifloor(p.y), ifloor(p.z));
+    }
+
+    public void moveBy(in int dx, in int dy, in int dz)
     {
         this.x = this.x + dx;
         this.y = this.y + dy;
@@ -210,7 +239,7 @@ public struct BlockPosition
                                                                 this.dimension));
     }
 
-    public void move(in BlockFace bf)
+    public void moveBy(in BlockFace bf)
     {
         final switch(bf)
         {
@@ -948,6 +977,12 @@ public final class World
         return BlockPosition(this, x, y, z, dimension);
     }
 
+    public BlockPosition getBlockPosition(in Vector p,
+                                          in Dimension dimension)
+    {
+        return BlockPosition(this, ifloor(p.x), ifloor(p.y), ifloor(p.z), dimension);
+    }
+
     public BlockPosition getBlockPosition(in Position position)
     {
         return BlockPosition(this,
@@ -1009,7 +1044,7 @@ public final class World
         chunk.invalidate(x, y, z);
     }
 
-    public void invalidateGraphics(in int x, in int y, in int z, in Dimension dimension)
+    private void invalidateGraphics(in int x, in int y, in int z, in Dimension dimension)
     {
         invalidate(x, y, z, dimension);
         invalidate(x + 1, y, z, dimension);
@@ -1046,6 +1081,17 @@ public final class World
                                                                this.currentTime,
                                                                chunk,
                                                                this));
+    }
+
+    public void setBlock(in Vector p,
+                         in Dimension dimension,
+                         BlockData blockData)
+    {
+        setBlock(ifloor(p.x),
+                 ifloor(p.y),
+                 ifloor(p.z),
+                 dimension,
+                 blockData);
     }
 
     public void setBlock(in Position position, BlockData blockData)
@@ -1128,7 +1174,7 @@ public final class World
             EntityNode node = iter.value;
             LinkedHashMap!EntityNode startList = getEntityList(node);
             if(node.good)
-                node.descriptor.move(*node, deltaTime);
+                node.descriptor.move(*node, this, deltaTime);
             if(!node.good)
             {
                 startList.remove(node);

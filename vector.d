@@ -18,7 +18,7 @@
 module vector;
 
 public import std.math;
-import util;
+public import util;
 
 public struct Vector
 {
@@ -226,4 +226,17 @@ public Vector normalizeCylindricalMaximum(Vector v)
 	if(r == 0)
 		r = 1;
 	return v / r;
+}
+
+public Vector vrandom()
+{
+    Vector retval;
+    do
+    {
+        retval.x = frandom(-1, 1);
+        retval.y = frandom(-1, 1);
+        retval.z = frandom(-1, 1);
+    }
+    while(absSquared(retval) > 1);
+    return retval;
 }

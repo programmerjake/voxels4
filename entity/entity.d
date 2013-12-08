@@ -50,7 +50,7 @@ public abstract class EntityDescriptor
 
     public abstract TransformedMesh getDrawMesh(ref EntityData data, RenderLayer rl);
     protected abstract EntityData readInternal(GameLoadStream gls);
-    public abstract void move(ref EntityData data, in double deltaTime);
+    public abstract void move(ref EntityData data, World world, in double deltaTime);
     protected abstract void writeInternal(EntityData data, GameStoreStream gss);
 
     public static void write(EntityData data, GameStoreStream gss)

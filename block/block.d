@@ -96,7 +96,7 @@ public abstract class BlockDescriptor
     }
     public static bool isSideBlocked(BlockPosition pos, BlockFace f)
     {
-        pos.move(f);
+        pos.moveBy(f);
         BlockData bd = pos.get();
         if(bd.good)
             return bd.descriptor.isSideBlocked(bd, f);

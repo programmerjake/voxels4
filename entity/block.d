@@ -19,6 +19,7 @@ module entity.block;
 import entity.entity;
 import block.block;
 import std.stdio;
+import util;
 
 private immutable float blockSize = 0.25;
 
@@ -42,12 +43,17 @@ public final class BlockEntity : EntityDescriptor
 
     public static EntityData make(Vector position, Dimension dimension, BlockData block)
     {
+        return make(position, vrandom() * 0.1, dimension, block);
+    }
+
+    public static EntityData make(Vector position, Vector velocity, Dimension dimension, BlockData block)
+    {
         EntityData data = EntityData(BLOCK, position, dimension);
         Data * data_data = new Data();
-        data_data.theta = 0; // TODO(jacob#): change to random
+        data_data.theta = frandom(2 * PI);
         data_data.existDuration = INITIAL_EXIST_DURATION;
         data_data.block = block;
-        data_data.velocity = Vector.ZERO;
+        data_data.velocity = velocity;
         data.data = cast(void *)data_data;
         return data;
     }
@@ -66,7 +72,7 @@ public final class BlockEntity : EntityDescriptor
         if(data_data is null)
             return TransformedMesh();
         assert(data_data.block.good);
-        return TransformedMesh(data_data.block.descriptor.getEntityDrawMesh(data_data.block, rl), Matrix.rotateY(data_data.theta).concat(Matrix.translate(data.position - Vector(0, blockSize, 0))));
+        return TransformedMesh(data_data.block.descriptor.getEntityDrawMesh(data_data.block, rl), Matrix.rotateY(data_data.theta).concat(Matrix.translate(data.position - Vector(0, blockSize * 0.5, 0))));
     }
 
     protected override EntityData readInternal(GameLoadStream gls)
@@ -83,7 +89,41 @@ public final class BlockEntity : EntityDescriptor
         return data;
     }
 
-    public override void move(ref EntityData data, in double deltaTime)
+    private static bool isOpaque(BlockData bd)
+    {
+        return bd.descriptor.isOpaque(bd);
+    }
+
+    private float moveH(Vector startPos, Vector endPos, BlockPosition b)
+    {
+        b.moveTo(startPos);
+        if(!b.get().good || isOpaque(b.get()))
+            return 0;
+        b.moveTo(endPos);
+        float t = 0, tFactor = 0.5;
+        bool allGood = true;
+        while(abs(startPos - endPos) > 1e-5)
+        {
+            Vector midPos = 0.5 * (startPos + endPos);
+            b.moveTo(midPos);
+            if(b.get().good && !isOpaque(b.get()))
+            {
+                t += tFactor;
+                startPos = midPos;
+            }
+            else
+            {
+                endPos = midPos;
+                allGood = false;
+            }
+            tFactor *= 0.5;
+        }
+        if(allGood)
+            return 1;
+        return t;
+    }
+
+    public override void move(ref EntityData data, World world, in double deltaTime)
     {
         Data * data_data = cast(Data *)data.data;
         assert(data_data !is null);
@@ -93,8 +133,17 @@ public final class BlockEntity : EntityDescriptor
             data.descriptor = null;
             return;
         }
+        BlockPosition b = world.getBlockPosition(ifloor(data.position.x), ifloor(data.position.y), ifloor(data.position.z), data.dimension);
         data_data.velocity += deltaTime * World.GRAVITY;
-        data.position += deltaTime * data_data.velocity;
+        Vector newPos = data.position + deltaTime * data_data.velocity;
+        float t = moveH(data.position - deltaTime * data_data.velocity, newPos, b) * 2 - 1;
+        if(t == 1)
+            data.position = newPos;
+        else
+        {
+            data_data.velocity = Vector.ZERO;
+            data.position += t * deltaTime * data_data.velocity;
+        }
         data_data.theta += deltaTime * PI;
         if(data.position.y < -64)
         {

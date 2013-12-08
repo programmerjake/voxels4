@@ -935,9 +935,22 @@ public struct Display
 		.handleEvents(eventHandler);
 	}
 
+	private static double timer_;
+
+	private static updateTimer()
+	{
+	    timer_ = realtimeTimer;
+	}
+
+	static this()
+	{
+	    updateTimer();
+	}
+
 	public static void flip(float fps = defaultFPS)
 	{
 		flipDisplay(fps);
+		updateTimer();
 	}
 
 	public static @property double instantaneousFPS()
@@ -956,6 +969,11 @@ public struct Display
 	}
 
 	public static @property double timer()
+	{
+		return timer_;
+	}
+
+	public static @property double realtimeTimer()
 	{
 		return TickDuration.currSystemTick.hnsecs / 1e7;
 	}

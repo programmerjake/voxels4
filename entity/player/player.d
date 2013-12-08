@@ -41,11 +41,11 @@ private final class PlayerDescriptor : EntityDescriptor
         return data;
     }
 
-    public override void move(ref EntityData data, in double deltaTime)
+    public override void move(ref EntityData data, World world, in double deltaTime)
     {
         Player p = cast(Player)data.data;
         assert(p !is null);
-        p.move(deltaTime);
+        p.move(world, deltaTime);
         data.position = p.position;
         data.dimension = p.dimension;
     }
@@ -65,6 +65,8 @@ public abstract class PlayerInputEvent
         UseButtonPress,
         AttackButtonDown,
         AttackButtonUp,
+        SneakButtonDown,
+        SneakButtonUp,
         ViewChange,
         HotBarMoveLeft,
         HotBarMoveRight,
@@ -82,22 +84,104 @@ public abstract class PlayerInputEvent
         {
             super(Type.UseButtonPress);
         }
-        public abstract void dispatch(Player p)
+        public override void dispatch(Player p)
         {
-            //FIXME(jacob#): finish
+            p.handleUseButtonPress(this);
         }
     }
-    public static final class UseButtonPress : PlayerInputEvent
-    {
-        this()
-        {
-            super(Type.UseButtonPress);
-        }
-        public abstract void dispatch(Player p)
-        {
-            //FIXME(jacob#): finish
-        }
-    }
+	public static final class AttackButtonDown : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.AttackButtonDown);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleAttackButtonDown(this);
+		}
+	}
+	public static final class AttackButtonUp : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.AttackButtonUp);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleAttackButtonUp(this);
+		}
+	}
+	public static final class SneakButtonDown : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.SneakButtonDown);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleSneakButtonDown(this);
+		}
+	}
+	public static final class SneakButtonUp : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.SneakButtonUp);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleSneakButtonUp(this);
+		}
+	}
+	public static final class ViewChange : PlayerInputEvent
+	{
+	    public immutable float deltaTheta, deltaPhi;
+		this(float deltaTheta, float deltaPhi)
+		{
+			super(Type.ViewChange);
+			this.deltaTheta = deltaTheta;
+			this.deltaPhi = deltaPhi;
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleViewChange(this);
+		}
+	}
+	public static final class HotBarMoveLeft : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.HotBarMoveLeft);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleHotBarMoveLeft(this);
+		}
+	}
+	public static final class HotBarMoveRight : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.HotBarMoveRight);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleHotBarMoveRight(this);
+		}
+	}
+	public static final class HotBarSelect : PlayerInputEvent
+	{
+	    public immutable int selection;
+		this(int selection)
+		{
+			super(Type.HotBarSelect);
+			this.selection = selection;
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleHotBarSelect(this);
+		}
+	}
 }
 
 //FIXME (jacob#): finish PlayerInputEvent
@@ -140,7 +224,7 @@ public final class Player
         assert(false, "finish"); //FIXME (jacob#): finish
     }
 
-    public void move(in double deltaTime)
+    public void move(World world, in double deltaTime)
     {
         assert(false, "finish"); //FIXME (jacob#): finish
     }
@@ -157,4 +241,48 @@ public final class Player
         players = new LinkedList!Player();
     }
 
+    package void handleUseButtonPress(PlayerInputEvent.UseButtonPress event)
+    {
+
+    }
+
+    package void handleAttackButtonDown(PlayerInputEvent.AttackButtonDown event)
+    {
+
+    }
+
+    package void handleAttackButtonUp(PlayerInputEvent.AttackButtonUp event)
+    {
+
+    }
+
+    package void handleSneakButtonDown(PlayerInputEvent.SneakButtonDown event)
+    {
+
+    }
+
+    package void handleSneakButtonUp(PlayerInputEvent.SneakButtonUp event)
+    {
+
+    }
+
+    package void handleViewChange(PlayerInputEvent.ViewChange event)
+    {
+
+    }
+
+    package void handleHotBarMoveLeft(PlayerInputEvent.HotBarMoveLeft event)
+    {
+
+    }
+
+    package void handleHotBarMoveRight(PlayerInputEvent.HotBarMoveRight event)
+    {
+
+    }
+
+    package void handleHotBarSelect(PlayerInputEvent.HotBarSelect event)
+    {
+
+    }
 }

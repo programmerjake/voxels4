@@ -34,6 +34,7 @@ import resource.texture_atlas;
 import entity.block;
 import render.text;
 import render.generate;
+import block.anim_test;
 
 void dumpPixel(int x, int y)
 {
@@ -51,19 +52,17 @@ int main(string[] args)
         {
             for(int z = -20; z <= 20; z++)
             {
-                if(x * x + (y - 64) * (y - 64) + z * z < 10 * 10 || y >= 65)
+                if(abs(x) == 3 && abs(z) == 3 && y < 60 && y >= 55)
+                    w.setBlock(x, y, z, Dimension.Overworld, BlockData(BlockAnimTest.BLOCK_ANIM_TEST));
+                else if((x * x + (y - 64) * (y - 64) + z * z < 10 * 10 && x >= -1) || y >= 64)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Air.AIR));
-                else if(y >= 64)
+                else if(y >= 61)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Stone.STONE));
                 else
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Bedrock.BEDROCK));
             }
         }
     }
-    w.addEntity(BlockEntity.make(Vector(0.5, 64, 2.5), Dimension.Overworld, BlockData(Stone.STONE)));
-    w.addEntity(BlockEntity.make(Vector(0.5, 64, -1.5), Dimension.Overworld, BlockData(Stone.STONE)));
-    w.addEntity(BlockEntity.make(Vector(-1.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
-    w.addEntity(BlockEntity.make(Vector(2.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
     w.advanceTime(0);
     bool doMove = false;
     string title = "";
@@ -75,10 +74,8 @@ int main(string[] args)
 		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
 		Display.initOverlay();
 		textMesh.clear();
-		Matrix textTransform = Matrix.translate(-0.5 * Text.width(title), -0.5 * Text.height(title), 0);
-		textTransform = textTransform.concat(Matrix.rotateY(((Display.timer * 0.5) % 1) * (PI * 2)));
-		textTransform = textTransform.concat(Matrix.translate(0, 0, -20));
-		Text.render(textMesh, textTransform, Color.GREEN, title);
+		const float textDistance = 20.0;
+		Text.render(textMesh, Matrix.translate(-textDistance * Display.scaleX, textDistance * Display.scaleY - Text.height(title), -textDistance), Color.GREEN, title);
 		Renderer.render(textMesh);
 		Renderer.render(invert(textInvMesh, textMesh));
 		Display.flip();
@@ -87,17 +84,15 @@ int main(string[] args)
             w.advanceTime(Display.frameDeltaTime);
         else
             doMove = true;
-		static int i = 0;
-		if(++i >= Display.averageFPS)
+		static float i = 0;
+		i += 1.0;
+		if(i >= Display.averageFPS * 0.1)
 		{
-			i = 0;
+			i -= Display.averageFPS * 0.1;
 			title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;
-            w.addEntity(BlockEntity.make(Vector(0.5, 64, 2.5), Dimension.Overworld, BlockData(Stone.STONE)));
-            w.addEntity(BlockEntity.make(Vector(0.5, 64, -1.5), Dimension.Overworld, BlockData(Stone.STONE)));
-            w.addEntity(BlockEntity.make(Vector(-1.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
-            w.addEntity(BlockEntity.make(Vector(2.5, 64, 0.5), Dimension.Overworld, BlockData(Stone.STONE)));
+            w.addEntity(BlockEntity.make(Vector(0.5, 66, 0.5), vrandom(), Dimension.Overworld, BlockData(Stone.STONE)));
 		}
 	}
 	return 0;
