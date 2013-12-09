@@ -1039,4 +1039,21 @@ public struct Display
         glDepthMask(GL_TRUE);
 	    glClear(GL_DEPTH_BUFFER_BIT);
 	}
+
+	private static bool grabMouse_ = false;
+
+	public static @property bool grabMouse()
+	{
+	    return grabMouse_;
+	}
+
+	public static @property void grabMouse(bool g)
+	{
+	    synchronized(SDLSyncObject)
+	    {
+            grabMouse_ = g;
+            SDL_ShowCursor(g ? 0 : 1);
+            SDL_WM_GrabInput(g ? SDL_GRAB_ON : SDL_GRAB_OFF);
+	    }
+	}
 }

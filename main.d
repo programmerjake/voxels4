@@ -35,6 +35,8 @@ import entity.block;
 import render.text;
 import render.generate;
 import block.anim_test;
+import entity.player.player;
+import entity.player.input;
 
 void dumpPixel(int x, int y)
 {
@@ -46,6 +48,7 @@ int main(string[] args)
 {
     bool done = false;
     World w = new World();
+    DefaultPlayerInput playerInput = new DefaultPlayerInput();
     for(int x = -20; x <= 20; x++)
     {
         for(int y = 0; y < World.MAX_HEIGHT; y++)
@@ -63,36 +66,38 @@ int main(string[] args)
             }
         }
     }
+    Player player = Player.make("", playerInput, Vector(0.5, 65.5, 0.5), Dimension.Overworld);
+    w.addEntity(player.data);
     w.advanceTime(0);
+    playerInput.initMode();
     bool doMove = false;
     string title = "";
     Mesh textMesh = new Mesh();
-    Mesh textInvMesh = new Mesh();
     while(!done)
     {
 		Display.initFrame();
-		w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
+		//w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
+		player.drawAll(w);
 		Display.initOverlay();
 		textMesh.clear();
 		const float textDistance = 20.0;
 		Text.render(textMesh, Matrix.translate(-textDistance * Display.scaleX, textDistance * Display.scaleY - Text.height(title), -textDistance), Color.GREEN, title);
 		Renderer.render(textMesh);
-		Renderer.render(invert(textInvMesh, textMesh));
 		Display.flip();
-		Display.handleEvents(null);
+		Display.handleEvents(playerInput);
 		if(doMove)
             w.advanceTime(Display.frameDeltaTime);
         else
             doMove = true;
 		static float i = 0;
 		i += 1.0;
-		if(i >= Display.averageFPS * 0.1)
+		if(i >= Display.averageFPS * 0.5)
 		{
-			i -= Display.averageFPS * 0.1;
+			i -= Display.averageFPS * 0.5;
 			title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;
-            w.addEntity(BlockEntity.make(Vector(0.5, 66, 0.5), vrandom(), Dimension.Overworld, BlockData(Stone.STONE)));
+            w.addEntity(BlockEntity.make(Vector(0.5, 75, 0.5), vrandom() * 3, Dimension.Overworld, BlockData(Stone.STONE)));
 		}
 	}
 	return 0;

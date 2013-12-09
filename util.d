@@ -138,7 +138,7 @@ public final class LinkedList(T)
 
     @property bool empty() const
     {
-        return head !is null;
+        return head is null;
     }
 
     @property T front()

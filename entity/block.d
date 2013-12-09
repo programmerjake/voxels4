@@ -40,6 +40,7 @@ public final class BlockEntity : EntityDescriptor
     }
 
     public static immutable double INITIAL_EXIST_DURATION = 60.0 * 6; // 6 minutes
+    //FIXME(jacob#): exist duration not working
 
     public static EntityData make(Vector position, Dimension dimension, BlockData block)
     {

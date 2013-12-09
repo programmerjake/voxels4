@@ -189,6 +189,7 @@ public abstract class PlayerInputEvent
 public interface PlayerInput
 {
     PlayerInputEvent nextEvent();
+    void drawOverlay();
 }
 
 public final class Player
@@ -207,16 +208,42 @@ public final class Player
     package Vector position;
     package Dimension dimension;
     private float viewTheta, viewPhi;
+    private PlayerInput input;
     private this()
     {
 
+    }
+
+    public @property EntityData data()
+    {
+        EntityData retval = EntityData(PLAYER, position, dimension);
+        retval.data = cast(void *)this;
+        return retval;
+    }
+
+    public static Player make(string name, PlayerInput input, Vector position, Dimension dimension)
+    {
+        Player retval = new Player();
+        retval.name = name;
+        retval.position = position;
+        retval.dimension = dimension;
+        retval.input = input;
+        retval.viewTheta = 0;
+        retval.viewPhi = 0;
+        return retval;
     }
 
     //FIXME (jacob#): finish Player
 
     public TransformedMesh getDrawMesh(RenderLayer rl)
     {
-        assert(false, "finish"); //FIXME (jacob#): finish
+        return TransformedMesh(); //FIXME (jacob#): finish
+    }
+
+    public void drawAll(World world)
+    {
+        world.draw(position, viewTheta, viewPhi, dimension);
+        //FIXME (jacob#): finish
     }
 
     package static Player readInternal(GameLoadStream gls)
@@ -226,7 +253,14 @@ public final class Player
 
     public void move(World world, in double deltaTime)
     {
-        assert(false, "finish"); //FIXME (jacob#): finish
+        //FIXME (jacob#): finish
+        for(;;)
+        {
+            PlayerInputEvent event = input.nextEvent();
+            if(event is null)
+                break;
+            event.dispatch(this);
+        }
     }
 
     package void writeInternal(GameStoreStream gss)
@@ -241,48 +275,60 @@ public final class Player
         players = new LinkedList!Player();
     }
 
+    private bool sneakDown = false;
+    private bool attackDown = false;
+
     package void handleUseButtonPress(PlayerInputEvent.UseButtonPress event)
     {
-
+        //FIXME(jacob#): finish
     }
 
     package void handleAttackButtonDown(PlayerInputEvent.AttackButtonDown event)
     {
-
+        //FIXME(jacob#): finish
+        attackDown = true;
     }
 
     package void handleAttackButtonUp(PlayerInputEvent.AttackButtonUp event)
     {
-
+        //FIXME(jacob#): finish
+        attackDown = false;
     }
 
     package void handleSneakButtonDown(PlayerInputEvent.SneakButtonDown event)
     {
-
+        //FIXME(jacob#): finish
+        sneakDown = true;
     }
 
     package void handleSneakButtonUp(PlayerInputEvent.SneakButtonUp event)
     {
-
+        //FIXME(jacob#): finish
+        sneakDown = false;
     }
 
     package void handleViewChange(PlayerInputEvent.ViewChange event)
     {
-
+        //FIXME(jacob#): finish
+        viewTheta += event.deltaTheta;
+        viewTheta %= 2 * PI;
+        viewPhi += event.deltaPhi;//FIXME(jacob#): finish
+        if(viewPhi < -PI / 2) viewPhi = -PI / 2;
+        if(viewPhi > PI / 2) viewPhi = PI / 2;
     }
 
     package void handleHotBarMoveLeft(PlayerInputEvent.HotBarMoveLeft event)
     {
-
+        //FIXME(jacob#): finish
     }
 
     package void handleHotBarMoveRight(PlayerInputEvent.HotBarMoveRight event)
     {
-
+        //FIXME(jacob#): finish
     }
 
     package void handleHotBarSelect(PlayerInputEvent.HotBarSelect event)
     {
-
+        //FIXME(jacob#): finish
     }
 }
