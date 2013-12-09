@@ -91,7 +91,7 @@ int main(string[] args)
             doMove = true;
 		static float i = 0;
 		i += 1.0;
-		if(i >= Display.averageFPS * 0.5)
+		while(i >= Display.averageFPS * 0.5)
 		{
 			i -= Display.averageFPS * 0.5;
 			title = format("FPS : %g", Display.averageFPS);

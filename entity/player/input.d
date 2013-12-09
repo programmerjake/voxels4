@@ -41,12 +41,61 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
         return events.removeFront();
     }
 
+    private bool sneakButton_ = false;
+    private bool attackButton_ = false;
+    private bool motionUp_ = false;
+    private bool motionDown_ = false;
+    private bool motionForward_ = false;
+    private bool motionBack_ = false;
+    private bool motionLeft_ = false;
+    private bool motionRight_ = false;
+
+    public @property bool sneakButton()
+    {
+        return sneakButton_;
+    }
+
+    public @property bool attackButton()
+    {
+        return attackButton_;
+    }
+
+    public @property bool motionUp()
+    {
+        return motionUp_;
+    }
+
+    public @property bool motionDown()
+    {
+        return motionDown_;
+    }
+
+    public @property bool motionForward()
+    {
+        return motionForward_;
+    }
+
+    public @property bool motionBack()
+    {
+        return motionBack_;
+    }
+
+    public @property bool motionLeft()
+    {
+        return motionLeft_;
+    }
+
+    public @property bool motionRight()
+    {
+        return motionRight_;
+    }
+
     private void addEvent(PlayerInputEvent event)
     {
         events.addBack(event);
     }
 
-    public void drawOverlay()
+    public void drawOverlay(Player p)
     {
         //TODO(jacob#):finish
     }
@@ -54,7 +103,7 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
     public bool handleMouseUp(MouseUpEvent event)
     {
         if(event.button == MouseButton.Left)
-            addEvent(new PlayerInputEvent.AttackButtonUp());
+            attackButton_ = false;
         //TODO(jacob#):finish
         return false;
     }
@@ -62,7 +111,10 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
     public bool handleMouseDown(MouseDownEvent event)
     {
         if(event.button == MouseButton.Left)
+        {
+            attackButton_ = true;
             addEvent(new PlayerInputEvent.AttackButtonDown());
+        }
         if(event.button == MouseButton.Right)
             addEvent(new PlayerInputEvent.UseButtonPress());
         //TODO(jacob#):finish

@@ -64,13 +64,11 @@ public abstract class PlayerInputEvent
     {
         UseButtonPress,
         AttackButtonDown,
-        AttackButtonUp,
-        SneakButtonDown,
-        SneakButtonUp,
         ViewChange,
         HotBarMoveLeft,
         HotBarMoveRight,
         HotBarSelect,
+        Jump,
     }
     public immutable Type type;
     public this(Type type)
@@ -89,50 +87,17 @@ public abstract class PlayerInputEvent
             p.handleUseButtonPress(this);
         }
     }
-	public static final class AttackButtonDown : PlayerInputEvent
-	{
-		this()
-		{
-			super(Type.AttackButtonDown);
-		}
-		public override void dispatch(Player p)
-		{
-			p.handleAttackButtonDown(this);
-		}
-	}
-	public static final class AttackButtonUp : PlayerInputEvent
-	{
-		this()
-		{
-			super(Type.AttackButtonUp);
-		}
-		public override void dispatch(Player p)
-		{
-			p.handleAttackButtonUp(this);
-		}
-	}
-	public static final class SneakButtonDown : PlayerInputEvent
-	{
-		this()
-		{
-			super(Type.SneakButtonDown);
-		}
-		public override void dispatch(Player p)
-		{
-			p.handleSneakButtonDown(this);
-		}
-	}
-	public static final class SneakButtonUp : PlayerInputEvent
-	{
-		this()
-		{
-			super(Type.SneakButtonUp);
-		}
-		public override void dispatch(Player p)
-		{
-			p.handleSneakButtonUp(this);
-		}
-	}
+    public static final class AttackButtonDown : PlayerInputEvent
+    {
+        this()
+        {
+            super(Type.AttackButtonDown);
+        }
+        public override void dispatch(Player p)
+        {
+            p.handleAttackButtonDown(this);
+        }
+    }
 	public static final class ViewChange : PlayerInputEvent
 	{
 	    public immutable float deltaTheta, deltaPhi;
@@ -169,6 +134,17 @@ public abstract class PlayerInputEvent
 			p.handleHotBarMoveRight(this);
 		}
 	}
+	public static final class Jump : PlayerInputEvent
+	{
+		this()
+		{
+			super(Type.Jump);
+		}
+		public override void dispatch(Player p)
+		{
+			p.handleJump(this);
+		}
+	}
 	public static final class HotBarSelect : PlayerInputEvent
 	{
 	    public immutable int selection;
@@ -189,7 +165,15 @@ public abstract class PlayerInputEvent
 public interface PlayerInput
 {
     PlayerInputEvent nextEvent();
-    void drawOverlay();
+    void drawOverlay(Player p);
+    @property bool sneakButton();
+    @property bool attackButton();
+    @property bool motionUp();
+    @property bool motionDown();
+    @property bool motionForward();
+    @property bool motionBack();
+    @property bool motionLeft();
+    @property bool motionRight();
 }
 
 public final class Player
@@ -243,6 +227,7 @@ public final class Player
     public void drawAll(World world)
     {
         world.draw(position, viewTheta, viewPhi, dimension);
+        input.drawOverlay(this);
         //FIXME (jacob#): finish
     }
 
@@ -275,9 +260,6 @@ public final class Player
         players = new LinkedList!Player();
     }
 
-    private bool sneakDown = false;
-    private bool attackDown = false;
-
     package void handleUseButtonPress(PlayerInputEvent.UseButtonPress event)
     {
         //FIXME(jacob#): finish
@@ -286,25 +268,6 @@ public final class Player
     package void handleAttackButtonDown(PlayerInputEvent.AttackButtonDown event)
     {
         //FIXME(jacob#): finish
-        attackDown = true;
-    }
-
-    package void handleAttackButtonUp(PlayerInputEvent.AttackButtonUp event)
-    {
-        //FIXME(jacob#): finish
-        attackDown = false;
-    }
-
-    package void handleSneakButtonDown(PlayerInputEvent.SneakButtonDown event)
-    {
-        //FIXME(jacob#): finish
-        sneakDown = true;
-    }
-
-    package void handleSneakButtonUp(PlayerInputEvent.SneakButtonUp event)
-    {
-        //FIXME(jacob#): finish
-        sneakDown = false;
     }
 
     package void handleViewChange(PlayerInputEvent.ViewChange event)
@@ -328,6 +291,11 @@ public final class Player
     }
 
     package void handleHotBarSelect(PlayerInputEvent.HotBarSelect event)
+    {
+        //FIXME(jacob#): finish
+    }
+
+    package void handleJump(PlayerInputEvent.Jump event)
     {
         //FIXME(jacob#): finish
     }

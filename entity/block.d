@@ -52,6 +52,7 @@ public final class BlockEntity : EntityDescriptor
         EntityData data = EntityData(BLOCK, position, dimension);
         Data * data_data = new Data();
         data_data.theta = frandom(2 * PI);
+        data_data.angularVelocity = frandom(-5, 5);
         data_data.existDuration = INITIAL_EXIST_DURATION;
         data_data.block = block;
         data_data.velocity = velocity;
@@ -62,6 +63,7 @@ public final class BlockEntity : EntityDescriptor
     private static struct Data
     {
         public float theta;
+        public float angularVelocity;
         public double existDuration;
         public BlockData block;
         public Vector velocity;
@@ -83,6 +85,7 @@ public final class BlockEntity : EntityDescriptor
         EntityData data = EntityData(BLOCK, position, dimension);
         Data * data_data = new Data();
         data_data.theta = gls.readAngleTheta();
+        data_data.angularVelocity = gls.readRangeLimitedFloat(-20, 20);
         data_data.existDuration = gls.readRangeLimitedDouble(0, 1e5);
         data_data.block = BlockDescriptor.read(gls);
         data_data.velocity = gls.readFiniteVector();
@@ -144,8 +147,9 @@ public final class BlockEntity : EntityDescriptor
         {
             data_data.velocity = Vector.ZERO;
             data.position += t * deltaTime * data_data.velocity;
+            data_data.angularVelocity *= pow(0.1, deltaTime);
         }
-        data_data.theta += deltaTime * PI;
+        data_data.theta += deltaTime * data_data.angularVelocity;
         if(data.position.y < -64)
         {
             data.descriptor = null;
@@ -162,6 +166,7 @@ public final class BlockEntity : EntityDescriptor
         gss.write(data.position);
         gss.write(data.dimension);
         gss.write(data_data.theta);
+        gss.write(data_data.angularVelocity);
         gss.write(data_data.existDuration);
         BlockDescriptor.write(data_data.block, gss);
         gss.write(data_data.velocity);
