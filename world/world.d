@@ -791,7 +791,7 @@ private final class Chunk
             EntityNode data = iter.value;
             if(data.good)
             {
-                mesh.add(data.descriptor.getDrawMesh(*data, rl));
+                mesh.add(data.getDrawMesh(rl));
             }
         }
     }
@@ -836,9 +836,8 @@ private final class Chunk
                 {
                     return Mesh.EMPTY;
                 }
-                BlockDescriptor bd = b.descriptor;
-                canCache = !bd.graphicsChanges(pos);
-                TransformedMesh drawMesh = bd.getDrawMesh(pos, rl);
+                canCache = !b.graphicsChanges(pos);
+                TransformedMesh drawMesh = b.getDrawMesh(pos, rl);
                 if(drawMesh.mesh is null)
                     return Mesh.EMPTY;
                 blockMeshCache.clear();
@@ -1174,7 +1173,7 @@ public final class World
             EntityNode node = iter.value;
             LinkedHashMap!EntityNode startList = getEntityList(node);
             if(node.good)
-                node.descriptor.move(*node, this, deltaTime);
+                node.move(this, deltaTime);
             if(!node.good)
             {
                 startList.remove(node);

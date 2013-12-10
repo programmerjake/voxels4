@@ -40,7 +40,6 @@ public final class BlockEntity : EntityDescriptor
     }
 
     public static immutable double INITIAL_EXIST_DURATION = 60.0 * 6; // 6 minutes
-    //FIXME(jacob#): exist duration not working
 
     public static EntityData make(Vector position, Dimension dimension, BlockData block)
     {
@@ -75,7 +74,7 @@ public final class BlockEntity : EntityDescriptor
         if(data_data is null)
             return TransformedMesh();
         assert(data_data.block.good);
-        return TransformedMesh(data_data.block.descriptor.getEntityDrawMesh(data_data.block, rl), Matrix.rotateY(data_data.theta).concat(Matrix.translate(data.position - Vector(0, blockSize * 0.5, 0))));
+        return TransformedMesh(data_data.block.getEntityDrawMesh(rl), Matrix.rotateY(data_data.theta).concat(Matrix.translate(data.position - Vector(0, blockSize * 0.5, 0))));
     }
 
     protected override EntityData readInternal(GameLoadStream gls)
@@ -93,15 +92,10 @@ public final class BlockEntity : EntityDescriptor
         return data;
     }
 
-    private static bool isOpaque(BlockData bd)
-    {
-        return bd.descriptor.isOpaque(bd);
-    }
-
     private float moveH(Vector startPos, Vector endPos, BlockPosition b)
     {
         b.moveTo(startPos);
-        if(!b.get().good || isOpaque(b.get()))
+        if(!b.get().good || b.get().isOpaque())
             return 0;
         b.moveTo(endPos);
         float t = 0, tFactor = 0.5;
@@ -110,7 +104,7 @@ public final class BlockEntity : EntityDescriptor
         {
             Vector midPos = 0.5 * (startPos + endPos);
             b.moveTo(midPos);
-            if(b.get().good && !isOpaque(b.get()))
+            if(b.get().good && !b.get().isOpaque())
             {
                 t += tFactor;
                 startPos = midPos;

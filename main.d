@@ -105,7 +105,7 @@ int main(string[] args)
 			title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;
-            w.addEntity(BlockEntity.make(Vector(0.5, 75, 0.5), vrandom() * 3, Dimension.Overworld, BlockData(Stone.STONE)));
+            w.addEntity(BlockEntity.make(Vector(20.5, 75, 0.5), vrandom() * 3 - Vector.X * 15, Dimension.Overworld, BlockData(Stone.STONE)));
 		}
 	}
 	return 0;

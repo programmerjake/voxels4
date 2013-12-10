@@ -38,6 +38,31 @@ public struct BlockData
     {
         return descriptor !is null;
     }
+    public TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl)
+    {
+        assert(good);
+        return descriptor.getDrawMesh(pos, rl);
+    }
+    public TransformedMesh getEntityDrawMesh(RenderLayer rl)
+    {
+        assert(good);
+        return descriptor.getEntityDrawMesh(this, rl);
+    }
+    public bool graphicsChanges(BlockPosition pos)
+    {
+        assert(good);
+        return descriptor.graphicsChanges(pos);
+    }
+    public bool isSideBlocked(BlockFace face)
+    {
+        assert(good);
+        return descriptor.isSideBlocked(this, face);
+    }
+    public bool isOpaque()
+    {
+        assert(good);
+        return descriptor.isOpaque(this);
+    }
 }
 
 public abstract class BlockDescriptor
@@ -51,10 +76,10 @@ public abstract class BlockDescriptor
 
     public abstract TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl);
     public abstract TransformedMesh getEntityDrawMesh(BlockData data, RenderLayer rl);
-    protected abstract BlockData readInternal(GameLoadStream gls);
     public abstract bool graphicsChanges(BlockPosition pos);
     public abstract bool isSideBlocked(BlockData data, BlockFace face);
     public abstract bool isOpaque(BlockData data);
+    protected abstract BlockData readInternal(GameLoadStream gls);
     protected uint getEmittedLight(BlockData data)
     {
         return 0;
@@ -99,7 +124,7 @@ public abstract class BlockDescriptor
         pos.moveBy(f);
         BlockData bd = pos.get();
         if(bd.good)
-            return bd.descriptor.isSideBlocked(bd, f);
+            return bd.isSideBlocked(f);
         return true;
     }
 }

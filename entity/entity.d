@@ -37,6 +37,16 @@ public struct EntityData
     {
         return descriptor !is null;
     }
+    public TransformedMesh getDrawMesh(RenderLayer rl)
+    {
+        assert(good);
+        return descriptor.getDrawMesh(this, rl);
+    }
+    public void move(World world, in double deltaTime)
+    {
+        assert(good);
+        descriptor.move(this, world, deltaTime);
+    }
 }
 
 public abstract class EntityDescriptor
