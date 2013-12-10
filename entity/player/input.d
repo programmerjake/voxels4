@@ -24,14 +24,23 @@ import platform;
 public final class DefaultPlayerInput : PlayerInput, EventHandler
 {
     private LinkedList!PlayerInputEvent events;
+    private Player player = null;
     public this()
     {
         events = new LinkedList!PlayerInputEvent();
     }
 
+    public void setPlayer(Player player)
+    {
+        assert(player !is null);
+        assert(this.player is null);
+        this.player = player;
+    }
+
     public void initMode()
     {
         Display.grabMouse = true;
+        Display.handleEvents(null);
     }
 
     public PlayerInputEvent nextEvent()
@@ -43,12 +52,11 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
 
     private bool sneakButton_ = false;
     private bool attackButton_ = false;
-    private bool motionUp_ = false;
-    private bool motionDown_ = false;
     private bool motionForward_ = false;
     private bool motionBack_ = false;
     private bool motionLeft_ = false;
     private bool motionRight_ = false;
+    private bool spaceDown = false;
 
     public @property bool sneakButton()
     {
@@ -62,40 +70,66 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
 
     public @property bool motionUp()
     {
-        return motionUp_;
+        return spaceDown && !sneakButton;
     }
 
     public @property bool motionDown()
     {
-        return motionDown_;
+        return sneakButton && !spaceDown;
     }
 
     public @property bool motionForward()
     {
-        return motionForward_;
+        return motionForward_ && !motionBack_;
     }
 
     public @property bool motionBack()
     {
-        return motionBack_;
+        return motionBack_ && !motionForward_;
     }
 
     public @property bool motionLeft()
     {
-        return motionLeft_;
+        return motionLeft_ && !motionRight_;
     }
 
     public @property bool motionRight()
     {
-        return motionRight_;
+        return motionRight_ && !motionLeft_;
     }
+
+    private bool flyMode_ = false;
+
+    public @property bool flyMode()
+    {
+        return flyMode_ && creativeMode;
+    }
+
+    private bool creativeMode_ = false;
+
+    public @property bool creativeMode()
+    {
+        return creativeMode_;
+    }
+
+    public @property void creativeMode(bool v)
+    {
+        creativeMode_ = v;
+        if(!creativeMode_)
+        {
+            flyMode_ = false;
+        }
+    }
+
+    private double lastSpaceDownTime = -1;
+    private static immutable double spaceDoubleTapTime = 0.4;
 
     private void addEvent(PlayerInputEvent event)
     {
         events.addBack(event);
     }
 
-    public void drawOverlay(Player p)
+    public void drawOverlay()
     {
         //TODO(jacob#):finish
     }
@@ -121,10 +155,31 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
         return false;
     }
 
+    private static immutable bool smoothMouse = true;
+
+    private float lastDeltaX = 0, lastDeltaY = 0, deltaX = 0, deltaY = 0;
+
+    public void move()
+    {
+        if(smoothMouse)
+        {
+            float newDeltaX = deltaX / 2 + lastDeltaX / 2;
+            lastDeltaX = lastDeltaX / 2 + deltaX / 2;
+            float newDeltaY = deltaY / 2 + lastDeltaY / 2;
+            lastDeltaY = lastDeltaY / 2 + deltaY / 2;
+            deltaX = newDeltaX;
+            deltaY = newDeltaY;
+        }
+        addEvent(new PlayerInputEvent.ViewChange(deltaX, deltaY));
+        deltaX = 0;
+        deltaY = 0;
+    }
+
     public bool handleMouseMove(MouseMoveEvent event)
     {
         const float sensitivity = 1.0 / 300;
-        addEvent(new PlayerInputEvent.ViewChange(event.deltaX * sensitivity, -event.deltaY * sensitivity));
+        deltaX += event.deltaX * sensitivity;
+        deltaY += -event.deltaY * sensitivity;
         //TODO(jacob#):finish
         return false;
     }
@@ -132,18 +187,74 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
     public bool handleMouseScroll(MouseScrollEvent event)
     {
         //TODO(jacob#):finish
+        if(event.scrollY == 0)
+        {
+            if(event.scrollX < 0)
+                addEvent(new PlayerInputEvent.HotBarMoveLeft());
+            else if(event.scrollX > 0)
+                addEvent(new PlayerInputEvent.HotBarMoveRight());
+        }
+        else if(event.scrollY < 0)
+            addEvent(new PlayerInputEvent.HotBarMoveLeft());
+        else //if(event.scrollY > 0)
+            addEvent(new PlayerInputEvent.HotBarMoveRight());
         return false;
     }
 
     public bool handleKeyUp(KeyUpEvent event)
     {
         //TODO(jacob#):finish
+        if(event.key == KeyboardKey.LShift)
+            sneakButton_ = false;
+        if(event.key == KeyboardKey.Space)
+            spaceDown = false;
+        if(event.key == KeyboardKey.W)
+            motionForward_ = false;
+        if(event.key == KeyboardKey.S)
+            motionBack_ = false;
+        if(event.key == KeyboardKey.A)
+            motionLeft_ = false;
+        if(event.key == KeyboardKey.D)
+            motionRight_ = false;
         return false;
     }
 
     public bool handleKeyDown(KeyDownEvent event)
     {
         //TODO(jacob#):finish
+        if(event.key == KeyboardKey.LShift)
+            sneakButton_ = true;
+        if(event.key == KeyboardKey.Space)
+        {
+            if(!spaceDown)
+            {
+                if(lastSpaceDownTime < 0)
+                {
+                    lastSpaceDownTime = Display.timer;
+                }
+                else if(lastSpaceDownTime + spaceDoubleTapTime >= Display.timer)
+                {
+                    if(creativeMode)
+                    {
+                        flyMode_ = !flyMode_;
+                    }
+                    lastSpaceDownTime = -1;
+                }
+                else
+                {
+                    lastSpaceDownTime = Display.timer;
+                }
+            }
+            spaceDown = true;
+        }
+        if(event.key == KeyboardKey.W)
+            motionForward_ = true;
+        if(event.key == KeyboardKey.S)
+            motionBack_ = true;
+        if(event.key == KeyboardKey.A)
+            motionLeft_ = true;
+        if(event.key == KeyboardKey.D)
+            motionRight_ = true;
         return false;
     }
 

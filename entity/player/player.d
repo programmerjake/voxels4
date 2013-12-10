@@ -165,7 +165,7 @@ public abstract class PlayerInputEvent
 public interface PlayerInput
 {
     PlayerInputEvent nextEvent();
-    void drawOverlay(Player p);
+    void drawOverlay();
     @property bool sneakButton();
     @property bool attackButton();
     @property bool motionUp();
@@ -174,6 +174,10 @@ public interface PlayerInput
     @property bool motionBack();
     @property bool motionLeft();
     @property bool motionRight();
+    @property bool flyMode();
+    @property bool creativeMode();
+    @property void creativeMode(bool);
+    void move();
 }
 
 public final class Player
@@ -227,7 +231,7 @@ public final class Player
     public void drawAll(World world)
     {
         world.draw(position, viewTheta, viewPhi, dimension);
-        input.drawOverlay(this);
+        input.drawOverlay();
         //FIXME (jacob#): finish
     }
 
@@ -239,6 +243,7 @@ public final class Player
     public void move(World world, in double deltaTime)
     {
         //FIXME (jacob#): finish
+        input.move();
         for(;;)
         {
             PlayerInputEvent event = input.nextEvent();
@@ -246,6 +251,24 @@ public final class Player
                 break;
             event.dispatch(this);
         }
+        const float moveVelocity = 2.5;
+        if(input.flyMode)
+        {
+            if(input.motionUp)
+                position.y += deltaTime * moveVelocity;
+            else if(input.motionDown)
+                position.y -= deltaTime * moveVelocity;
+        }
+        Vector forward = Matrix.rotateY(-viewTheta).apply(Vector.NZ);
+        Vector left = Matrix.rotateY(-viewTheta).apply(Vector.NX);
+        if(input.motionLeft)
+            position += deltaTime * moveVelocity * left;
+        else if(input.motionRight)
+            position -= deltaTime * moveVelocity * left;
+        if(input.motionForward)
+            position += deltaTime * moveVelocity * forward;
+        else if(input.motionBack)
+            position -= deltaTime * moveVelocity * forward;
     }
 
     package void writeInternal(GameStoreStream gss)

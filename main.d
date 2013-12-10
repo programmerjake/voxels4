@@ -37,6 +37,7 @@ import render.generate;
 import block.anim_test;
 import entity.player.player;
 import entity.player.input;
+import persistance.game_version;
 
 void dumpPixel(int x, int y)
 {
@@ -48,12 +49,15 @@ int main(string[] args)
 {
     bool done = false;
     World w = new World();
-    DefaultPlayerInput playerInput = new DefaultPlayerInput();
-    for(int x = -20; x <= 20; x++)
+    auto playerInput = new DefaultPlayerInput();
+    const int size = 50;
+    for(int x = -size; x <= size; x++)
     {
         for(int y = 0; y < World.MAX_HEIGHT; y++)
         {
-            for(int z = -20; z <= 20; z++)
+            Display.title = format("Building World : %s%%", 100.0 * (x + size + cast(float)y / World.MAX_HEIGHT) / (size * 2 + 1));
+            Display.handleEvents(null);
+            for(int z = -size; z <= size; z++)
             {
                 if(abs(x) == 3 && abs(z) == 3 && y < 60 && y >= 55)
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(BlockAnimTest.BLOCK_ANIM_TEST));
@@ -64,11 +68,16 @@ int main(string[] args)
                 else
                     w.setBlock(x, y, z, Dimension.Overworld, BlockData(Bedrock.BEDROCK));
             }
+            w.advanceTime(0);
         }
     }
     Player player = Player.make("", playerInput, Vector(0.5, 65.5, 0.5), Dimension.Overworld);
+    playerInput.setPlayer(player);
     w.addEntity(player.data);
     w.advanceTime(0);
+    Display.title = "Voxels " ~ GameVersion.VERSION;
+    w.viewDistance = 48;
+    playerInput.creativeMode = true;
     playerInput.initMode();
     bool doMove = false;
     string title = "";
@@ -76,7 +85,6 @@ int main(string[] args)
     while(!done)
     {
 		Display.initFrame();
-		//w.draw(Vector(0.5, 65.5, 0.5), ((Display.timer * 0.03) % 1) * (PI * 2), -PI / 4, Dimension.Overworld);
 		player.drawAll(w);
 		Display.initOverlay();
 		textMesh.clear();
