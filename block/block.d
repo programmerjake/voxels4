@@ -77,7 +77,7 @@ public struct BlockData
     public RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
     {
         if(!good)
-            return collideWithBlock(pos.position, ray, delegate RayCollision(Vector position, float t) {return new UninitializedRayCollision(position, t);});
+            return collideWithBlock(cast(Position)pos.position, ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new UninitializedRayCollision(position, dimension, t);});
         return descriptor.collide(pos, ray, cArgs);
     }
 }

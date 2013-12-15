@@ -764,6 +764,62 @@ private final class Chunk
         return 0;
     }
 
+    private int forEachEntityInCylinderHelper(LinkedHashMap!EntityNode list, int delegate(ref EntityData data) dg, Vector origin, Vector dir, float r) // dir must be normalized
+    {
+        for(auto i = list.begin; !i.ended;)
+        {
+            if(i.value.good && pointInRayCylinder(i.value.position, origin, dir, r))
+            {
+                EntityNode node = i.value;
+                Vector position = node.position;
+                Dimension dimension = node.dimension;
+                int retval;
+                try
+                {
+                    retval = dg(*node);
+                }
+                finally
+                {
+                    if(node.position != position || node.dimension != dimension || !node.good)
+                    {
+                        if(ChunkPosition(node.position, node.dimension) != this.position || !node.good || getEntityList(ifloor(node.position.y)) !is list)
+                        {
+                            i.removeAndGoToNext();
+                            world.insertEntityInChunk(node);
+                        }
+                        else
+                            i++;
+                    }
+                    else
+                        i++;
+                }
+                if(retval != 0)
+                    return retval;
+            }
+            else
+                i++;
+        }
+        return 0;
+    }
+
+    public int forEachEntityInCylinder(int delegate(ref EntityData data) dg, Vector origin, Vector dir, float r) // dir must be normalized
+    {
+        int retval;
+        retval = forEachEntityInCylinderHelper(otherEntities, dg, origin, dir, r);
+        if(retval != 0)
+            return retval;
+        for(int yi = 0; yi < Y_SIZE / XZ_SIZE; yi++)
+        {
+            if(rayIntersectsAABB(Vector(position.x - r, yi * XZ_SIZE - r, position.z - r), Vector(position.x + XZ_SIZE + r, (yi + 1) * XZ_SIZE + r, position.z + XZ_SIZE + r), origin, dir))
+            {
+                retval = forEachEntityInCylinderHelper(entities[yi], dg, origin, dir, r);
+                if(retval != 0)
+                    return retval;
+            }
+        }
+        return 0;
+    }
+
     public this(World world, ChunkPosition position)
     {
         this.world = world;
@@ -1302,7 +1358,7 @@ public final class World
 
     public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
     {
-        BlockPosition pos = getBlockPosition(ray.origin);
+        BlockPosition pos = getBlockPosition(ray.origin, ray.dimension);
         bool useX = (fabs(ray.dir.x) >= eps);
         bool useY = (fabs(ray.dir.y) >= eps);
         bool useZ = (fabs(ray.dir.z) >= eps);
@@ -1313,6 +1369,6 @@ public final class World
             invDir.y = 1 / ray.dir.y;
         if(useZ)
             invDir.z = 1 / ray.dir.z;
-
+        assert(false); //FIXME(jacob#): finish
     }
 }

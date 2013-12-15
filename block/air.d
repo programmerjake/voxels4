@@ -78,4 +78,19 @@ public final class Air : BlockDescriptor
     protected override void writeInternal(BlockData data, GameStoreStream gss)
     {
     }
+
+    public override Collision collideWithCylinder(BlockPosition pos, Vector position, float radius, float height)
+    {
+        return Collision();
+    }
+
+    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    {
+        return Collision();
+    }
+
+    public override RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
+    {
+        return null;
+    }
 }
