@@ -20,6 +20,8 @@ module util;
 import std.math;
 import std.random;
 
+public immutable float eps = 1e-4;
+
 template limit(T)
 {
 	T limit(T v, T minV, T maxV)

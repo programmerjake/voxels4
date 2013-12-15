@@ -23,6 +23,7 @@ public import world.block_face;
 public import persistance.game_load_stream;
 public import persistance.game_store_stream;
 import block.air;
+public import physics.physics;
 
 public struct BlockData
 {
@@ -63,6 +64,22 @@ public struct BlockData
         assert(good);
         return descriptor.isOpaque(this);
     }
+    public Collision collideWithCylinder(BlockPosition pos, Vector position, float radius, float height)
+    {
+        assert(good);
+        return descriptor.collideWithCylinder(pos, position, radius, height);
+    }
+    public Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    {
+        assert(good);
+        return descriptor.collideWithBox(pos, boxTransform);
+    }
+    public RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
+    {
+        if(!good)
+            return collideWithBlock(pos.position, ray, delegate RayCollision(Vector position, float t) {return new UninitializedRayCollision(position, t);});
+        return descriptor.collide(pos, ray, cArgs);
+    }
 }
 
 public abstract class BlockDescriptor
@@ -85,6 +102,9 @@ public abstract class BlockDescriptor
         return 0;
     }
     protected abstract void writeInternal(BlockData data, GameStoreStream gss);
+    public abstract Collision collideWithCylinder(BlockPosition pos, Vector position, float radius, float height);
+    public abstract Collision collideWithBox(BlockPosition pos, Matrix boxTransform);
+    public abstract RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs);
 
     public static void write(BlockData data, GameStoreStream gss)
     {

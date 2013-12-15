@@ -29,6 +29,7 @@ import vector;
 import std.conv;
 import entity.entity;
 import std.stdio;
+import physics.physics;
 
 public enum Dimension
 {
@@ -115,7 +116,7 @@ public struct BlockPosition
     }
     private int x, y, z, chunkIndex;
     private immutable Dimension dimension;
-    private Chunk chunk;
+    package Chunk chunk;
 
     public @disable this();
 
@@ -169,6 +170,10 @@ public struct BlockPosition
             this.y = y;
             this.z = z;
             this.dimension = dimension;
+        }
+        public Position opCast(T = Position)()
+        {
+            return Position(x, y, z, dimension);
         }
     }
 
@@ -1190,6 +1195,18 @@ public final class World
                 iter++;
             }
         }
+        for(auto iter = entities.begin; !iter.ended;)
+        {
+            EntityNode node = iter.value;
+            if(!node.good)
+            {
+                LinkedHashMap!EntityNode startList = getEntityList(node);
+                startList.remove(node);
+                iter.removeAndGoToNext();
+            }
+            else
+                iter++;
+        }
     }
 
     public void advanceTime(in double amount)
@@ -1278,5 +1295,24 @@ public final class World
         }
         //TODO(jacob#): finish
         return retval;
+    }
+
+    private static immutable int assumedMaxEntitySize = 4;
+    static assert(assumedMaxEntitySize <= Chunk.XZ_SIZE);
+
+    public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
+    {
+        BlockPosition pos = getBlockPosition(ray.origin);
+        bool useX = (fabs(ray.dir.x) >= eps);
+        bool useY = (fabs(ray.dir.y) >= eps);
+        bool useZ = (fabs(ray.dir.z) >= eps);
+        Vector invDir = Vector.ZERO;
+        if(useX)
+            invDir.x = 1 / ray.dir.x;
+        if(useY)
+            invDir.y = 1 / ray.dir.y;
+        if(useZ)
+            invDir.z = 1 / ray.dir.z;
+
     }
 }
