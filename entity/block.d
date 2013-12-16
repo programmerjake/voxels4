@@ -66,6 +66,7 @@ public final class BlockEntity : EntityDescriptor
         public double existDuration;
         public BlockData block;
         public Vector velocity;
+        public bool colliding = false;
     }
 
     private Matrix getDrawTransform(EntityData data, Data * data_data)
@@ -136,19 +137,36 @@ public final class BlockEntity : EntityDescriptor
             data.descriptor = null;
             return;
         }
-        BlockPosition b = world.getBlockPosition(ifloor(data.position.x), ifloor(data.position.y), ifloor(data.position.z), data.dimension);
-        data_data.velocity += deltaTime * World.GRAVITY;
-        Vector newPos = data.position + deltaTime * data_data.velocity;
-        float t = moveH(data.position - deltaTime * data_data.velocity, newPos, b) * 2 - 1;
-        if(t == 1)
-            data.position = newPos;
+        static if(false)
+        {
+            BlockPosition b = world.getBlockPosition(ifloor(data.position.x), ifloor(data.position.y), ifloor(data.position.z), data.dimension);
+            data_data.velocity += deltaTime * World.GRAVITY;
+            Vector newPos = data.position + deltaTime * data_data.velocity;
+            float t = moveH(data.position - deltaTime * data_data.velocity, newPos, b) * 2 - 1;
+            if(t == 1)
+                data.position = newPos;
+            else
+            {
+                data_data.velocity = Vector.ZERO;
+                data.position += t * deltaTime * data_data.velocity;
+                data_data.angularVelocity *= pow(0.1, deltaTime);
+            }
+            data_data.theta += deltaTime * data_data.angularVelocity;
+        }
         else
         {
-            data_data.velocity = Vector.ZERO;
-            data.position += t * deltaTime * data_data.velocity;
-            data_data.angularVelocity *= pow(0.1, deltaTime);
+            data_data.velocity += deltaTime * World.GRAVITY;
+            data.position = data.position + deltaTime * data_data.velocity;
+            Collision c = world.collideWithCylinder(data.dimension, Cylinder(data.position - Vector(0, -0.5 * blockSize, 0), 0.5 * blockSize * sqrt(2.0), blockSize));
+            if(c.good)
+            {
+                c.normalize();
+                data_data.velocity = Vector.ZERO;
+                data.position += c.normal * deltaTime * 10;
+                data_data.angularVelocity *= pow(0.1, deltaTime);
+            }
+            data_data.theta += deltaTime * data_data.angularVelocity;
         }
-        data_data.theta += deltaTime * data_data.angularVelocity;
         if(data.position.y < -64)
         {
             data.descriptor = null;
@@ -173,11 +191,17 @@ public final class BlockEntity : EntityDescriptor
 
     public override Collision collideWithCylinder(EntityData data, Cylinder c)
     {
+        Data * data_data = cast(Data *)data.data;
+        if(data_data is null || data_data.colliding)
+            return Collision();
         return collideCylinderWithCylinder(Cylinder(data.position - Vector(0, -0.5 * blockSize, 0), 0.5 * blockSize * sqrt(2.0), blockSize), data.dimension, c);
     }
 
     public override Collision collideWithBox(EntityData data, Matrix boxTransform)
     {
+        Data * data_data = cast(Data *)data.data;
+        if(data_data is null || data_data.colliding)
+            return Collision();
         return collideAABBWithBox(data.position - 0.5 * blockSize * Vector.XYZ, data.position + 0.5 * blockSize * Vector.XYZ, data.dimension, boxTransform);
     }
 

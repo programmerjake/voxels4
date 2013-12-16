@@ -26,17 +26,39 @@ import block.block;
 public struct Collision
 {
     public Vector point, normal = Vector(0, 0, 0);
+    public int count = 0;
     public Dimension dimension;
     public this(Vector point, Dimension dimension, Vector normal)
     {
         this.point = point;
         this.normal = normal;
         this.dimension = dimension;
+        this.count = 1;
     }
     public @property bool good()
     {
-        return this.normal != Vector.ZERO;
+        return this.count > 0;
     }
+    public void normalize()
+    {
+        if(good)
+        {
+            point /= count;
+            normal /= count;
+            count = 1;
+        }
+    }
+}
+
+public Collision combine(Collision a, Collision b)
+{
+    if(!a.good)
+        return b;
+    if(!b.good)
+        return a;
+    Collision retval = Collision(a.point + b.point, a.dimension, a.normal + b.normal);
+    retval.count = a.count + b.count;
+    return retval;
 }
 
 public struct Ray

@@ -680,6 +680,83 @@ public struct EntityRange
     {
         return IteratableEntityRange(this, world);
     }
+
+    public void addPoint(Vector point)
+    {
+        if(minx > point.x)
+            minx = point.x;
+        if(maxx < point.x)
+            maxx = point.x;
+        if(miny > point.y)
+            miny = point.y;
+        if(maxy < point.y)
+            maxy = point.y;
+        if(minz > point.z)
+            minz = point.z;
+        if(maxz < point.z)
+            maxz = point.z;
+    }
+}
+
+public struct IteratableBlockRange
+{
+    public @disable this();
+    private BlockRange range;
+    private World world;
+    package this(BlockRange range, World world)
+    {
+        this.range = range;
+        this.world = world;
+    }
+    public int opApply(int delegate(ref BlockPosition pos) dg)
+    {
+        return world.forEachBlockInRange(dg, range);
+    }
+}
+
+public struct BlockRange
+{
+    public int minx, miny, minz, maxx, maxy, maxz;
+    public Dimension dimension;
+    this(int minx, int miny, int minz, int maxx, int maxy, int maxz, Dimension dimension)
+    {
+        this.minx = minx;
+        this.miny = miny;
+        this.minz = minz;
+        this.maxx = maxx;
+        this.maxy = maxy;
+        this.maxz = maxz;
+        this.dimension = dimension;
+    }
+
+    this(EntityRange r)
+    {
+        this(ifloor(r.minx), ifloor(r.miny), ifloor(r.minz), iceil(r.maxx), iceil(r.maxy), iceil(r.maxz), r.dimension);
+    }
+
+    public bool opBinaryRight(string op)(in Position p) if(op == "in")
+    {
+        if(p.dimension != dimension)
+            return false;
+        if(p.x < minx)
+            return false;
+        if(p.x > maxx)
+            return false;
+        if(p.y < miny)
+            return false;
+        if(p.y > maxy)
+            return false;
+        if(p.z < minz)
+            return false;
+        if(p.z > maxz)
+            return false;
+        return true;
+    }
+
+    public IteratableBlockRange iterate(World world)
+    {
+        return IteratableBlockRange(this, world);
+    }
 }
 
 private alias EntityData * EntityNode;
@@ -1598,5 +1675,107 @@ public final class World
             return collideEntity(ray, maxT, cArgs);
         RayCollision ec = collideEntity(ray, bc.distance, cArgs);
         return min(ec, bc);
+    }
+
+    package int forEachBlockInRange(int delegate(ref BlockPosition pos) dg, BlockRange range)
+    {
+        int minCX = range.minx & Chunk.FLOOR_SIZE_MASK;
+        int minCZ = range.minx & Chunk.FLOOR_SIZE_MASK;
+        int maxCX = (range.maxx + Chunk.XZ_SIZE - 1) & Chunk.FLOOR_SIZE_MASK;
+        int maxCZ = (range.maxz + Chunk.XZ_SIZE - 1) & Chunk.FLOOR_SIZE_MASK;
+        int miny = range.miny;
+        if(miny < 0)
+            miny = 0;
+        int maxy = range.maxy;
+        if(maxy >= Chunk.Y_SIZE - 1)
+            maxy = Chunk.Y_SIZE - 1;
+        for(int cx = minCX; cx <= maxCX; cx += Chunk.XZ_SIZE)
+        {
+            for(int cz = minCZ; cz <= maxCZ; cz += Chunk.XZ_SIZE)
+            {
+                int minx = range.minx;
+                int maxx = range.maxx;
+                int minz = range.minz;
+                int maxz = range.maxz;
+                if(minx < cx)
+                    minx = cx;
+                if(maxx > cx + Chunk.XZ_SIZE - 1)
+                    maxx = cx + Chunk.XZ_SIZE - 1;
+                if(minz < cz)
+                    minz = cz;
+                if(maxz > cz + Chunk.XZ_SIZE - 1)
+                    maxz = cz + Chunk.XZ_SIZE - 1;
+                BlockPosition pos = getBlockPosition(cx, 0, cz, range.dimension);
+                for(int x = minx; x <= maxx; x++)
+                {
+                    for(int y = miny; y <= maxy; y++)
+                    {
+                        for(int z = minz; z <= maxz; z++)
+                        {
+                            BlockPosition curPos = pos;
+                            curPos.moveTo(x, y, z);
+                            int retval = dg(curPos);
+                            if(retval != 0)
+                                return retval;
+                        }
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+
+    public Collision collideWithCylinder(Dimension dimension, Cylinder c)
+    {
+        EntityRange eRange = EntityRange(c.origin.x - c.r, c.origin.y, c.origin.z - c.r, c.origin.x + c.r, c.origin.y + c.height, c.origin.z + c.r, dimension);
+        BlockRange bRange = BlockRange(eRange);
+        eRange.minx -= assumedMaxEntitySize;
+        eRange.miny -= assumedMaxEntitySize;
+        eRange.minz -= assumedMaxEntitySize;
+        eRange.maxx += assumedMaxEntitySize;
+        eRange.maxy += assumedMaxEntitySize;
+        eRange.maxz += assumedMaxEntitySize;
+        Collision retval = Collision();
+        foreach(ref EntityData entity; eRange.iterate(this))
+        {
+            retval = combine(retval, entity.collideWithCylinder(c));
+        }
+        foreach(BlockPosition pos; bRange.iterate(this))
+        {
+            if(pos.get().good)
+                retval = combine(retval, pos.get().collideWithCylinder(pos, c));
+        }
+        return retval;
+    }
+
+    public Collision collideWithBox(Dimension dimension, Matrix boxTransform)
+    {
+        Vector p = boxTransform.apply(Vector.ZERO);
+        EntityRange eRange = EntityRange(p.x, p.y, p.z, p.x, p.y, p.z, dimension);
+        eRange.addPoint(boxTransform.apply(Vector.X));
+        eRange.addPoint(boxTransform.apply(Vector.Y));
+        eRange.addPoint(boxTransform.apply(Vector.XY));
+        eRange.addPoint(boxTransform.apply(Vector.Z));
+        eRange.addPoint(boxTransform.apply(Vector.XZ));
+        eRange.addPoint(boxTransform.apply(Vector.YZ));
+        eRange.addPoint(boxTransform.apply(Vector.XYZ));
+        BlockRange bRange = BlockRange(eRange);
+        eRange.minx -= assumedMaxEntitySize;
+        eRange.miny -= assumedMaxEntitySize;
+        eRange.minz -= assumedMaxEntitySize;
+        eRange.maxx += assumedMaxEntitySize;
+        eRange.maxy += assumedMaxEntitySize;
+        eRange.maxz += assumedMaxEntitySize;
+        Collision retval = Collision();
+        foreach(ref EntityData entity; eRange.iterate(this))
+        {
+            retval = combine(retval, entity.collideWithBox(boxTransform));
+        }
+        foreach(BlockPosition pos; bRange.iterate(this))
+        {
+            if(pos.get().good)
+                retval = combine(retval, pos.get().collideWithBox(pos, boxTransform));
+        }
+        return retval;
     }
 }

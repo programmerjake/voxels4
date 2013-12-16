@@ -73,6 +73,13 @@ public struct Vector
 		mixin("z " ~ op ~ "= rt.z;");
 	}
 
+	public void opOpAssign(string op)(const float rt)
+	{
+		mixin("x " ~ op ~ "= rt;");
+		mixin("y " ~ op ~ "= rt;");
+		mixin("z " ~ op ~ "= rt;");
+	}
+
     public static Vector normalize(in float x, in float y, in float z)
     {
         float r = sqrt(x * x + y * y + z * z);
@@ -173,7 +180,6 @@ public struct Vector
 	{
 		return mixin("Vector(x " ~ op ~ " b, y " ~ op ~ " b, z " ~ op ~ " b)");
 	}
-
 }
 
 public float dot(Vector a, Vector b)
