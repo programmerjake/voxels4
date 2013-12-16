@@ -96,12 +96,12 @@ public abstract class StoneType : BlockDescriptor
         return true;
     }
 
-    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c)
+    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c, CollisionMask mask)
     {
         return collideAABBWithCylinder(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, c);
     }
 
-    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform, CollisionMask mask)
     {
         return collideAABBWithBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, boxTransform);
     }

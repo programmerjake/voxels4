@@ -61,13 +61,17 @@ private final class PlayerDescriptor : EntityDescriptor
         p.writeInternal(gss);
     }
 
-    public override Collision collideWithCylinder(EntityData data, Cylinder c)
+    public override Collision collideWithCylinder(ref EntityData data, Cylinder c, CollisionMask mask)
     {
+        if(!mask.matches(Player.PLAYER_MASK, &data))
+            return Collision();
         return collideCylinderWithCylinder(Cylinder(data.position - Vector(0, -playerEyeHeight, 0), 0.5 * playerWidth, playerHeight), data.dimension, c);
     }
 
-    public override Collision collideWithBox(EntityData data, Matrix boxTransform)
+    public override Collision collideWithBox(ref EntityData data, Matrix boxTransform, CollisionMask mask)
     {
+        if(!mask.matches(Player.PLAYER_MASK, &data))
+            return Collision();
         return collideAABBWithBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), data.dimension, boxTransform);
     }
 
@@ -201,7 +205,8 @@ public interface PlayerInput
 
 public final class Player
 {
-    private static PlayerDescriptor PLAYER_;
+    private static ulong PLAYER_MASK_ = 0;
+    private static PlayerDescriptor PLAYER_ = null;
     static this()
     {
         PLAYER_ = new PlayerDescriptor();
@@ -209,6 +214,12 @@ public final class Player
     package static @property EntityDescriptor PLAYER()
     {
         return PLAYER_;
+    }
+    public static @property ulong PLAYER_MASK()
+    {
+        if(PLAYER_MASK_ == 0)
+            PLAYER_MASK_ = CollisionMask.getNewCollisionMaskBit();
+        return PLAYER_MASK_;
     }
 
     private string name;

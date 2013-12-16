@@ -89,12 +89,12 @@ public final class BlockAnimTest : BlockDescriptor
     {
     }
 
-    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c)
+    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c, CollisionMask mask)
     {
         return Collision();
     }
 
-    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform, CollisionMask mask)
     {
         return Collision();
     }

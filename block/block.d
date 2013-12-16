@@ -64,15 +64,15 @@ public struct BlockData
         assert(good);
         return descriptor.isOpaque(this);
     }
-    public Collision collideWithCylinder(BlockPosition pos, Cylinder c)
+    public Collision collideWithCylinder(BlockPosition pos, Cylinder c, CollisionMask mask)
     {
         assert(good);
-        return descriptor.collideWithCylinder(pos, c);
+        return descriptor.collideWithCylinder(pos, c, mask);
     }
-    public Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    public Collision collideWithBox(BlockPosition pos, Matrix boxTransform, CollisionMask mask)
     {
         assert(good);
-        return descriptor.collideWithBox(pos, boxTransform);
+        return descriptor.collideWithBox(pos, boxTransform, mask);
     }
     public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
     {
@@ -118,8 +118,8 @@ public abstract class BlockDescriptor
         return 0;
     }
     protected abstract void writeInternal(BlockData data, GameStoreStream gss);
-    public abstract Collision collideWithCylinder(BlockPosition pos, Cylinder c);
-    public abstract Collision collideWithBox(BlockPosition pos, Matrix boxTransform);
+    public abstract Collision collideWithCylinder(BlockPosition pos, Cylinder c, CollisionMask mask);
+    public abstract Collision collideWithBox(BlockPosition pos, Matrix boxTransform, CollisionMask mask);
     public abstract RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs);
 
     public static void write(BlockData data, GameStoreStream gss)

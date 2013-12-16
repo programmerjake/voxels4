@@ -779,18 +779,26 @@ private final class Chunk
     private alias BlockUpdateEvent[UpdateType.max + 1] BlockUpdateSubArray;
     public BlockUpdateSubArray[XZ_SIZE * Y_SIZE * XZ_SIZE] blockUpdatesArray;
     public LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent) blockUpdatesMap;
-    public alias MeshOctTree!(2, XZ_SIZE, 0, 0, 0)[Y_SIZE / XZ_SIZE] MeshCacheType;
+    public alias MeshOctTree!(4, XZ_SIZE, 0, 0, 0)[Y_SIZE / XZ_SIZE] MeshCacheType;
     public MeshCacheType[RenderLayer.max + 1] meshCache;
     public Mesh[RenderLayer.max + 1] overallMesh = null;
-    private LinkedHashMap!EntityNode[Y_SIZE / XZ_SIZE] entities;
+    private static immutable int LOG2_ENTITY_BLOCK_SIZE = 2;
+    static assert(LOG2_ENTITY_BLOCK_SIZE <= XZ_SIZE);
+    private static immutable int ENTITY_BLOCK_SIZE = 1 << LOG2_ENTITY_BLOCK_SIZE;
+    private LinkedHashMap!EntityNode[XZ_SIZE * Y_SIZE * XZ_SIZE / ENTITY_BLOCK_SIZE / ENTITY_BLOCK_SIZE / ENTITY_BLOCK_SIZE] entities;
     private LinkedHashMap!EntityNode otherEntities;
     private Mesh blockMeshCache = null;
 
-    public LinkedHashMap!EntityNode getEntityList(int y)
+    public LinkedHashMap!EntityNode getEntityList(int x, int y, int z)
     {
         if(y < 0 || y >= Y_SIZE)
             return otherEntities;
-        return entities[y / XZ_SIZE];
+        return entities[((x - position.x) >> LOG2_ENTITY_BLOCK_SIZE) + (y >> LOG2_ENTITY_BLOCK_SIZE) * (XZ_SIZE >> LOG2_ENTITY_BLOCK_SIZE) + ((z - position.z) >> LOG2_ENTITY_BLOCK_SIZE) * (XZ_SIZE * Y_SIZE >> 2 * LOG2_ENTITY_BLOCK_SIZE)];
+    }
+
+    public LinkedHashMap!EntityNode getEntityList(Vector p)
+    {
+        return getEntityList(ifloor(p.x), ifloor(p.y), ifloor(p.z));
     }
 
     private int forEachEntityInRangeHelper(LinkedHashMap!EntityNode list, int delegate(ref EntityData data) dg, EntityRange range)
@@ -811,7 +819,7 @@ private final class Chunk
                 {
                     if(node.position != position || node.dimension != dimension || !node.good)
                     {
-                        if(ChunkPosition(node.position, node.dimension) != this.position || !node.good || getEntityList(ifloor(node.position.y)) !is list)
+                        if(ChunkPosition(node.position, node.dimension) != this.position || !node.good || getEntityList(node.position) !is list)
                         {
                             i.removeAndGoToNext();
                             world.insertEntityInChunk(node);
@@ -833,23 +841,40 @@ private final class Chunk
 
     public int forEachEntityInRange(int delegate(ref EntityData data) dg, EntityRange range)
     {
-        int minyi = ifloor(range.miny / XZ_SIZE);
-        int maxyi = iceil(range.maxy / XZ_SIZE);
-        if(minyi < 0 || maxyi >= Y_SIZE / XZ_SIZE)
+        BlockRange bRange = BlockRange(range);
+        if(bRange.miny < 0 || bRange.maxy >= Y_SIZE)
         {
             int retval = forEachEntityInRangeHelper(otherEntities, dg, range);
             if(retval != 0)
                 return retval;
         }
-        if(minyi < 0)
-            minyi = 0;
-        if(maxyi > Y_SIZE / XZ_SIZE - 1)
-            maxyi = Y_SIZE / XZ_SIZE - 1;
-        for(int yi = minyi; yi <= maxyi; yi++)
+        if(bRange.miny < 0)
+            bRange.miny = 0;
+        if(bRange.maxy > Y_SIZE - 1)
+            bRange.maxy = Y_SIZE - 1;
+        bRange.minx -= position.x;
+        bRange.maxx -= position.x;
+        bRange.minz -= position.z;
+        bRange.maxz -= position.z;
+        if(bRange.minx < 0)
+            bRange.minx = 0;
+        if(bRange.maxx > XZ_SIZE - 1)
+            bRange.maxx = XZ_SIZE - 1;
+        if(bRange.minz < 0)
+            bRange.minz = 0;
+        if(bRange.maxz > XZ_SIZE - 1)
+            bRange.maxz = XZ_SIZE - 1;
+        for(int z = bRange.minz >> LOG2_ENTITY_BLOCK_SIZE; z <= bRange.maxz >> LOG2_ENTITY_BLOCK_SIZE; z++)
         {
-            int retval = forEachEntityInRangeHelper(entities[yi], dg, range);
-            if(retval != 0)
-                return retval;
+            for(int y = bRange.miny >> LOG2_ENTITY_BLOCK_SIZE; y <= bRange.maxy >> LOG2_ENTITY_BLOCK_SIZE; y++)
+            {
+                for(int x = bRange.minx >> LOG2_ENTITY_BLOCK_SIZE; x <= bRange.maxx >> LOG2_ENTITY_BLOCK_SIZE; x++)
+                {
+                    int retval = forEachEntityInRangeHelper(entities[x + y * (XZ_SIZE >> LOG2_ENTITY_BLOCK_SIZE) + z * (XZ_SIZE * Y_SIZE >> 2 * LOG2_ENTITY_BLOCK_SIZE)], dg, range);
+                    if(retval != 0)
+                        return retval;
+                }
+            }
         }
         return 0;
     }
@@ -872,7 +897,7 @@ private final class Chunk
                 {
                     if(node.position != position || node.dimension != dimension || !node.good)
                     {
-                        if(ChunkPosition(node.position, node.dimension) != this.position || !node.good || getEntityList(ifloor(node.position.y)) !is list)
+                        if(ChunkPosition(node.position, node.dimension) != this.position || !node.good || getEntityList(node.position) !is list)
                         {
                             i.removeAndGoToNext();
                             world.insertEntityInChunk(node);
@@ -898,13 +923,33 @@ private final class Chunk
         retval = forEachEntityInCylinderHelper(otherEntities, dg, origin, dir, r);
         if(retval != 0)
             return retval;
-        for(int yi = 0; yi < Y_SIZE / XZ_SIZE; yi++)
+        for(int x = 0; x < XZ_SIZE; x += ENTITY_BLOCK_SIZE)
         {
-            if(rayIntersectsAABB(Vector(position.x - r, yi * XZ_SIZE - r, position.z - r), Vector(position.x + XZ_SIZE + r, (yi + 1) * XZ_SIZE + r, position.z + XZ_SIZE + r), origin, dir))
+            for(int z = 0; z < XZ_SIZE; z += ENTITY_BLOCK_SIZE)
             {
-                retval = forEachEntityInCylinderHelper(entities[yi], dg, origin, dir, r);
-                if(retval != 0)
-                    return retval;
+                int startY = Y_SIZE;
+                RayCollision collideFn(Vector pos, Dimension d, float t)
+                {
+                    startY = ifloor(pos.y - r);
+                    return null;
+                }
+                collideWithAABB(Vector(position.x + x - r, -r, position.z + z - r), Vector(position.x + x + ENTITY_BLOCK_SIZE + r, Y_SIZE + r, position.z + z + ENTITY_BLOCK_SIZE + r), Ray(origin, position.dimension, dir), &collideFn);
+                if(startY < 0)
+                    startY = 0;
+                startY &= ~(ENTITY_BLOCK_SIZE - 1);
+                bool wasInCylinder = false;
+                for(int y = startY; y < Y_SIZE; y += ENTITY_BLOCK_SIZE)
+                {
+                    if(rayIntersectsAABB(Vector(position.x + x - r, y - r, position.z + z - r), Vector(position.x + x + ENTITY_BLOCK_SIZE + r, y + ENTITY_BLOCK_SIZE + r, position.z + z + ENTITY_BLOCK_SIZE + r), origin, dir))
+                    {
+                        wasInCylinder = true;
+                        retval = forEachEntityInCylinderHelper(getEntityList(x, y, z), dg, origin, dir, r);
+                        if(retval != 0)
+                            return retval;
+                    }
+                    else if(wasInCylinder)
+                        break;
+                }
             }
         }
         return 0;
@@ -915,13 +960,13 @@ private final class Chunk
         this.world = world;
         this.position = position;
         blockUpdatesMap = new LinkedHashMap!(BlockUpdatePosition, BlockUpdateEvent)();
-        foreach(int i, ref BlockData b; blocks)
+        foreach(ref BlockData b; blocks)
         {
             b = BlockData(null);
         }
-        for(int i = 0; i < Y_SIZE / XZ_SIZE; i++)
+        foreach(ref LinkedHashMap!EntityNode e; entities)
         {
-            entities[i] = new LinkedHashMap!EntityNode();
+            e = new LinkedHashMap!EntityNode();
         }
         otherEntities = new LinkedHashMap!EntityNode();
     }
@@ -1039,7 +1084,7 @@ public final class World
     private LinkedHashMap!EntityNode getEntityList(EntityNode node)
     {
         Chunk c = getOrAddChunk(ChunkPosition(node.position, node.dimension));
-        return c.getEntityList(ifloor(node.position.y));
+        return c.getEntityList(node.position);
     }
 
     package void insertEntityInChunk(EntityNode node)
@@ -1325,6 +1370,28 @@ public final class World
             LinkedHashMap!EntityNode startList = getEntityList(node);
             if(node.good)
                 node.move(this, deltaTime);
+            if(!node.good)
+            {
+                startList.remove(node);
+                iter.removeAndGoToNext();
+            }
+            else
+            {
+                LinkedHashMap!EntityNode endList = getEntityList(node);
+                if(endList !is startList)
+                {
+                    startList.remove(node);
+                    endList.set(node, node);
+                }
+                iter++;
+            }
+        }
+        for(auto iter = entities.begin; !iter.ended;)
+        {
+            EntityNode node = iter.value;
+            LinkedHashMap!EntityNode startList = getEntityList(node);
+            if(node.good)
+                node.postMove(this);
             if(!node.good)
             {
                 startList.remove(node);
@@ -1725,7 +1792,7 @@ public final class World
         return 0;
     }
 
-    public Collision collideWithCylinder(Dimension dimension, Cylinder c)
+    public Collision collideWithCylinder(Dimension dimension, Cylinder c, CollisionMask mask)
     {
         EntityRange eRange = EntityRange(c.origin.x - c.r, c.origin.y, c.origin.z - c.r, c.origin.x + c.r, c.origin.y + c.height, c.origin.z + c.r, dimension);
         BlockRange bRange = BlockRange(eRange);
@@ -1738,17 +1805,17 @@ public final class World
         Collision retval = Collision();
         foreach(ref EntityData entity; eRange.iterate(this))
         {
-            retval = combine(retval, entity.collideWithCylinder(c));
+            retval = combine(retval, entity.collideWithCylinder(c, mask));
         }
         foreach(BlockPosition pos; bRange.iterate(this))
         {
             if(pos.get().good)
-                retval = combine(retval, pos.get().collideWithCylinder(pos, c));
+                retval = combine(retval, pos.get().collideWithCylinder(pos, c, mask));
         }
         return retval;
     }
 
-    public Collision collideWithBox(Dimension dimension, Matrix boxTransform)
+    public Collision collideWithBox(Dimension dimension, Matrix boxTransform, CollisionMask mask)
     {
         Vector p = boxTransform.apply(Vector.ZERO);
         EntityRange eRange = EntityRange(p.x, p.y, p.z, p.x, p.y, p.z, dimension);
@@ -1769,12 +1836,12 @@ public final class World
         Collision retval = Collision();
         foreach(ref EntityData entity; eRange.iterate(this))
         {
-            retval = combine(retval, entity.collideWithBox(boxTransform));
+            retval = combine(retval, entity.collideWithBox(boxTransform, mask));
         }
         foreach(BlockPosition pos; bRange.iterate(this))
         {
             if(pos.get().good)
-                retval = combine(retval, pos.get().collideWithBox(pos, boxTransform));
+                retval = combine(retval, pos.get().collideWithBox(pos, boxTransform, mask));
         }
         return retval;
     }

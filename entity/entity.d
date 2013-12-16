@@ -43,20 +43,25 @@ public struct EntityData
         assert(good);
         return descriptor.getDrawMesh(this, rl);
     }
+    public void postMove(World world)
+    {
+        assert(good);
+        descriptor.postMove(this, world);
+    }
     public void move(World world, in double deltaTime)
     {
         assert(good);
         descriptor.move(this, world, deltaTime);
     }
-    public Collision collideWithCylinder(Cylinder c)
+    public Collision collideWithCylinder(Cylinder c, CollisionMask mask)
     {
         assert(good);
-        return descriptor.collideWithCylinder(this, c);
+        return descriptor.collideWithCylinder(this, c, mask);
     }
-    public Collision collideWithBox(Matrix boxTransform)
+    public Collision collideWithBox(Matrix boxTransform, CollisionMask mask)
     {
         assert(good);
-        return descriptor.collideWithBox(this, boxTransform);
+        return descriptor.collideWithBox(this, boxTransform, mask);
     }
     public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
     {
@@ -77,9 +82,12 @@ public abstract class EntityDescriptor
     public abstract TransformedMesh getDrawMesh(ref EntityData data, RenderLayer rl);
     protected abstract EntityData readInternal(GameLoadStream gls);
     public abstract void move(ref EntityData data, World world, in double deltaTime);
+    public void postMove(ref EntityData data, World world)
+    {
+    }
     protected abstract void writeInternal(EntityData data, GameStoreStream gss);
-    public abstract Collision collideWithCylinder(EntityData data, Cylinder c);
-    public abstract Collision collideWithBox(EntityData data, Matrix boxTransform);
+    public abstract Collision collideWithCylinder(ref EntityData data, Cylinder c, CollisionMask mask);
+    public abstract Collision collideWithBox(ref EntityData data, Matrix boxTransform, CollisionMask mask);
     public abstract RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs);
 
     public static void write(EntityData data, GameStoreStream gss)

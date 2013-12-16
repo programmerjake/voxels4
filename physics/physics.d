@@ -23,9 +23,39 @@ import world.world;
 import entity.entity;
 import block.block;
 
+public struct CollisionMask
+{
+    private static shared ulong nextCollisionMaskBit = 0x1;
+    public static ulong getNewCollisionMaskBit()
+    {
+        ulong retval = nextCollisionMaskBit;
+        assert(retval != 0);
+        nextCollisionMaskBit <<= 1;
+        return retval;
+    }
+    public ulong mask = ~0;
+    public EntityData * ignore = null;
+    public this(ulong mask, EntityData * ignore = null)
+    {
+        this.mask = mask;
+        this.ignore = ignore;
+    }
+    public this(EntityData * ignore)
+    {
+        this(~0, ignore);
+    }
+    public bool matches(ulong mask, EntityData * e)
+    {
+        if((mask & this.mask) != 0 && (e !is ignore || e is null))
+            return true;
+        return false;
+    }
+}
+
 public struct Collision
 {
-    public Vector point, normal = Vector(0, 0, 0);
+    public Vector point; /// the point to move to
+    public Vector normal = Vector(0, 0, 0);
     public int count = 0;
     public Dimension dimension;
     public this(Vector point, Dimension dimension, Vector normal)
@@ -526,6 +556,47 @@ public bool blockIntersectsPlane(PlaneEq planeEq, Vector min, Vector max)
     return false;
 }
 
+public Vector getSurfacePointOnAABB(Vector min, Vector max, Vector pt)
+{
+    Vector center = (min + max) * 0.5;
+    pt -= center;
+    pt = normalize(pt);
+    if(pt == Vector.ZERO)
+        pt = Vector.Y;
+    float closest = -1;
+    if(fabs(pt.x) >= eps)
+    {
+        float t;
+        if(pt.x > 0)
+            t = (max.x - center.x) / pt.x;
+        else
+            t = (min.x - center.x) / pt.x;
+        if(closest < 0 || t < closest)
+            closest = t;
+    }
+    if(fabs(pt.y) >= eps)
+    {
+        float t;
+        if(pt.y > 0)
+            t = (max.y - center.y) / pt.y;
+        else
+            t = (min.y - center.y) / pt.y;
+        if(closest < 0 || t < closest)
+            closest = t;
+    }
+    if(fabs(pt.z) >= eps)
+    {
+        float t;
+        if(pt.z > 0)
+            t = (max.z - center.z) / pt.z;
+        else
+            t = (min.z - center.z) / pt.z;
+        if(closest < 0 || t < closest)
+            closest = t;
+    }
+    return center + closest * pt;
+}
+
 public bool rayIntersectsAABB(Vector min, Vector max, Vector origin, Vector dir)
 {
     if(origin.x >= min.x && origin.x <= max.x &&
@@ -644,27 +715,33 @@ public Collision collideAABBWithCylinder(Vector min, Vector max, Dimension dimen
     if(anyCollision)
     {
         Vector center = (min + max) * 0.5;
+        Collision retval;
         if(absSquared(Vector(center.x, 0, center.z)) * (c.height * c.height) <= absSquared(Vector(0, center.y - c.height * 0.5, 0)) * (c.r * c.r))
         {
             if(center.y < c.height * 0.5)
-                return Collision(c.origin, dimension, Vector.Y);
-            return Collision(c.origin + Vector(0, c.height, 0), dimension, Vector.NY);
+                retval = Collision(c.origin, dimension, Vector.Y);
+            else
+                retval = Collision(c.origin + Vector(0, c.height, 0), dimension, Vector.NY);
         }
         else
         {
             if(fabs(center.x) * (max.z - min.z) > fabs(center.z) * (max.x - min.x))
             {
                 if(center.x < 0)
-                    return Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.X);
-                return Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.NX);
+                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.X);
+                else
+                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.NX);
             }
             else
             {
                 if(center.z < 0)
-                    return Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.Z);
-                return Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.NZ);
+                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.Z);
+                else
+                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.NZ);
             }
         }
+        retval.point = getSurfacePointOnAABB(min + c.origin, max + c.origin, retval.point);
+        return retval;
     }
     return Collision();
 }
@@ -703,7 +780,7 @@ public Collision collideAABBWithBox(Vector min, Vector max, Dimension dimension,
         p = boxTransform.apply(Vector(i & 1 ? 1 : 0, i & 2 ? 1 : 0, i & 4 ? 1 : 0));
         if(p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y && p.z >= min.z && p.z <= max.z)
         {
-            return Collision(p, dimension, getAABBWithBoxNormal(min, max, p));
+            return Collision(getSurfacePointOnAABB(min, max, p), dimension, getAABBWithBoxNormal(min, max, p));
         }
     }
     PlaneEq[6] peqs =
@@ -741,7 +818,7 @@ public Collision collideAABBWithBox(Vector min, Vector max, Dimension dimension,
         }
         if(inside)
         {
-            return Collision(p, dimension, minPEq.dir);
+            return Collision(getSurfacePointOnAABB(min, max, p), dimension, minPEq.dir);
         }
     }
     return Collision();
@@ -795,7 +872,10 @@ public Collision collideCylinderWithCylinder(Cylinder a, Dimension dimension, Cy
     else if(a.origin.y + a.height < b.height * 0.5)
         closestY = a.origin.y + a.height;
     else
+    {
         closestY = b.height * 0.5;
+        closestR = a.r;
+    }
     Vector xzDiffDir = normalize(xzDiff);
     Vector closestPt = xzDiffDir * closestR + Vector(0, closestY, 0);
     if(rOverlap > yOverlap)

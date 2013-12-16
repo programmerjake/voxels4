@@ -50,7 +50,7 @@ int main(string[] args)
     bool done = false;
     World w = new World();
     auto playerInput = new DefaultPlayerInput();
-    const int size = 50;
+    const int size = 20;
     for(int x = -size; x <= size; x++)
     {
         for(int y = 0; y < World.MAX_HEIGHT; y++)
@@ -78,7 +78,7 @@ int main(string[] args)
     Display.title = "Voxels " ~ GameVersion.VERSION;
     w.viewDistance = 48;
     playerInput.creativeMode = true;
-    playerInput.initMode();
+    //playerInput.initMode();
     bool doMove = false;
     string title = "";
     Mesh textMesh = new Mesh();
