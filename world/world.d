@@ -109,16 +109,18 @@ public struct Position
 
 public struct BlockPosition
 {
-    private World worldInternal;
+    private World worldInternal = null;
     public @property World world()
     {
         return worldInternal;
     }
+    public @property bool good()
+    {
+        return world !is null;
+    }
     private int x, y, z, chunkIndex;
-    private immutable Dimension dimension;
-    package Chunk chunk;
-
-    public @disable this();
+    private Dimension dimension;
+    package Chunk chunk = null;
 
     package this(World world, in int x, in int y, in int z, in Dimension dimension)
     {
@@ -179,6 +181,7 @@ public struct BlockPosition
 
     public @property BlockPositionPosition position()
     {
+        assert(good);
         return BlockPositionPosition(x, y, z, dimension);
     }
 
@@ -194,6 +197,7 @@ public struct BlockPosition
 
     public void moveBy(in int dx, in int dy, in int dz)
     {
+        assert(good);
         this.x = this.x + dx;
         this.y = this.y + dy;
         this.z = this.z + dz;
@@ -246,6 +250,7 @@ public struct BlockPosition
 
     public void moveBy(in BlockFace bf)
     {
+        assert(good);
         final switch(bf)
         {
         case BlockFace.NX:
@@ -341,6 +346,7 @@ public struct BlockPosition
 
     public BlockData getNotNull()
     {
+        assert(good);
         if(this.y < 0)
             return BlockData(Bedrock.BEDROCK);
         if(this.y >= World.MAX_HEIGHT)
@@ -353,6 +359,7 @@ public struct BlockPosition
 
     public BlockData get()
     {
+        assert(good);
         if(this.y < 0 || this.y >= World.MAX_HEIGHT)
             return BlockData();
         return this.chunk.blocks[this.chunkIndex];
@@ -360,6 +367,7 @@ public struct BlockPosition
 
     public void updateAbsolute(in UpdateType type, in double theTime)
     {
+        assert(good);
         if(this.y < 0 || this.y >= World.MAX_HEIGHT)
             return;
         this.world.replaceBlockUpdateIfNewer(this.chunk,
@@ -374,11 +382,13 @@ public struct BlockPosition
 
     public void updateRelative(in UpdateType type, in double deltaTime)
     {
+        assert(good);
         updateAbsolute(type, deltaTime + this.world.currentTime);
     }
 
     public void set(BlockData blockData)
     {
+        assert(good);
         if(this.y < 0 || this.y >= World.MAX_HEIGHT)
             return;
         this.world.setBlock(this.x, this.y, this.z, this.dimension, blockData);
@@ -386,16 +396,19 @@ public struct BlockPosition
 
     public Position getPosition()
     {
+        assert(good);
         return Position(this.x, this.y, this.z, this.dimension);
     }
 
     package void clearUpdate(in BlockUpdatePosition pos)
     {
+        assert(good);
         this.world.removeBlockUpdate(this.chunk, pos);
     }
 
     public void clearUpdate(in UpdateType type)
     {
+        assert(good);
         if(this.y < 0 || this.y >= World.MAX_HEIGHT)
             return;
         clearUpdate(BlockUpdatePosition(this.x,
@@ -1356,19 +1369,234 @@ public final class World
     private static immutable int assumedMaxEntitySize = 4;
     static assert(assumedMaxEntitySize <= Chunk.XZ_SIZE);
 
-    public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
+    private RayCollision collideEntityHelper(LinkedHashMap!ChunkPosition collidedChunks, ChunkPosition pos, Ray ray, float maxT, RayCollisionArgs cArgs)
+    {
+        RayCollision ec = null;
+        int collideFn(ref EntityData data)
+        {
+            ec = min(ec, data.collide(ray, cArgs));
+            return 0;
+        }
+        for(int dx = -Chunk.XZ_SIZE; dx <= Chunk.XZ_SIZE; dx++)
+        {
+            for(int dz = -Chunk.XZ_SIZE; dz <= Chunk.XZ_SIZE; dz++)
+            {
+                ChunkPosition curPos = ChunkPosition(pos.x + dx, pos.z + dz, pos.dimension);
+                if(!collidedChunks.containsKey(curPos))
+                {
+                    getOrAddChunk(curPos).forEachEntityInCylinder(&collideFn, ray.origin, ray.dir, assumedMaxEntitySize);
+                    collidedChunks.set(curPos, curPos);
+                }
+            }
+        }
+        if(ec !is null && ec.distance > maxT)
+            ec = null;
+        return ec;
+    }
+
+
+    private RayCollision collideEntity(Ray ray, float maxT, RayCollisionArgs cArgs)
+    {
+        LinkedHashMap!ChunkPosition collidedChunks = new LinkedHashMap!ChunkPosition();
+        ChunkPosition pos = ChunkPosition(ray.origin, ray.dimension);
+        RayCollision ec = collideEntityHelper(collidedChunks, pos, ray, maxT, cArgs);
+        if(ec !is null && ec.distance > maxT)
+            ec = null;
+        if(ec !is null)
+            return ec;
+        bool useX = (fabs(ray.dir.x) >= eps);
+        bool useZ = (fabs(ray.dir.z) >= eps);
+        if(!useX && !useZ)
+            return ec;
+        Vector invDir = Vector.ZERO;
+        Vector next, step;
+        Vector currentPos = ray.origin;
+        int destX, destZ;
+        int deltaX, deltaZ;
+        if(useX)
+        {
+            invDir.x = 1 / ray.dir.x;
+            step.x = fabs(invDir.x) * Chunk.XZ_SIZE;
+            int target;
+            if(ray.dir.x < 0)
+            {
+                target = (iceil(currentPos.x) + Chunk.XZ_SIZE - 1) & Chunk.FLOOR_SIZE_MASK - 1;
+                deltaX = -Chunk.XZ_SIZE;
+            }
+            else
+            {
+                deltaX = Chunk.XZ_SIZE;
+                target = ifloor(currentPos.x) & Chunk.FLOOR_SIZE_MASK + 1;
+            }
+            destX = target;
+            if(ray.dir.x < 0)
+                destX -= Chunk.XZ_SIZE;
+            next.x = (target - ray.origin.x) * invDir.x;
+        }
+        if(useX)
+        {
+            invDir.z = 1 / ray.dir.z;
+            step.z = fabs(invDir.z) * Chunk.XZ_SIZE;
+            int target;
+            if(ray.dir.z < 0)
+            {
+                target = (iceil(currentPos.z) + Chunk.XZ_SIZE - 1) & Chunk.FLOOR_SIZE_MASK - 1;
+                deltaZ = -Chunk.XZ_SIZE;
+            }
+            else
+            {
+                deltaZ = Chunk.XZ_SIZE;
+                target = ifloor(currentPos.z) & Chunk.FLOOR_SIZE_MASK + 1;
+            }
+            destZ = target;
+            if(ray.dir.z < 0)
+                destZ -= Chunk.XZ_SIZE;
+            next.z = (target - ray.origin.z) * invDir.z;
+        }
+        while(true)
+        {
+            float t;
+            if(useX && (!useZ || next.x < next.z))
+            {
+                t = next.x;
+                next.x += step.x;
+                pos.x = destX;
+                destX += deltaX;
+            }
+            else // if(useZ) // useZ must be true
+            {
+                t = next.z;
+                next.z += step.z;
+                pos.z = destZ;
+                destZ += deltaZ;
+            }
+            if(t > maxT)
+                return null;
+            ec = collideEntityHelper(collidedChunks, pos, ray, maxT, cArgs);
+            if(ec !is null && ec.distance > maxT)
+                ec = null;
+            if(ec !is null)
+                return ec;
+        }
+    }
+
+    private RayCollision collideBlock(Ray ray, float maxT, RayCollisionArgs cArgs)
     {
         BlockPosition pos = getBlockPosition(ray.origin, ray.dimension);
+        RayCollision bc = pos.get().collide(pos, ray, cArgs);
+        if(bc !is null && bc.distance > maxT)
+            bc = null;
+        if(bc !is null)
+            return bc;
         bool useX = (fabs(ray.dir.x) >= eps);
         bool useY = (fabs(ray.dir.y) >= eps);
         bool useZ = (fabs(ray.dir.z) >= eps);
+        assert(useX || useY || useZ);
         Vector invDir = Vector.ZERO;
+        Vector next, step;
+        Vector currentPos = ray.origin;
+        int destX, destY, destZ;
+        int deltaX, deltaY, deltaZ;
         if(useX)
+        {
             invDir.x = 1 / ray.dir.x;
+            step.x = fabs(invDir.x);
+            int target;
+            if(ray.dir.x < 0)
+            {
+                target = iceil(currentPos.x) - 1;
+                deltaX = -1;
+            }
+            else
+            {
+                deltaX = 1;
+                target = ifloor(currentPos.x) + 1;
+            }
+            destX = target;
+            if(ray.dir.x < 0)
+                destX--;
+            next.x = (target - ray.origin.x) * invDir.x;
+        }
         if(useY)
+        {
             invDir.y = 1 / ray.dir.y;
+            step.y = fabs(invDir.y);
+            int target;
+            if(ray.dir.y < 0)
+            {
+                target = iceil(currentPos.y) - 1;
+                deltaY = -1;
+            }
+            else
+            {
+                deltaY = 1;
+                target = ifloor(currentPos.y) + 1;
+            }
+            destY = target;
+            if(ray.dir.y < 0)
+                destY--;
+            next.y = (target - ray.origin.y) * invDir.y;
+        }
         if(useZ)
+        {
             invDir.z = 1 / ray.dir.z;
-        assert(false); //FIXME(jacob#): finish
+            step.z = fabs(invDir.z);
+            int target;
+            if(ray.dir.z < 0)
+            {
+                target = iceil(currentPos.z) - 1;
+                deltaX = -1;
+            }
+            else
+            {
+                deltaX = 1;
+                target = ifloor(currentPos.z) + 1;
+            }
+            destZ = target;
+            if(ray.dir.z < 0)
+                destZ--;
+            next.z = (target - ray.origin.z) * invDir.z;
+        }
+        while(true)
+        {
+            float t;
+            if(useX && (!useY || next.x < next.y) && (!useZ || next.x < next.z))
+            {
+                t = next.x;
+                next.x += step.x;
+                pos.moveTo(destX, pos.position.y, pos.position.z);
+                destX += deltaX;
+            }
+            else if(useY && (!useZ || next.y < next.z))
+            {
+                t = next.y;
+                next.y += step.y;
+                pos.moveTo(pos.position.x, destY, pos.position.z);
+                destY += deltaY;
+            }
+            else // if(useZ) // useZ must be true
+            {
+                t = next.z;
+                next.z += step.z;
+                pos.moveTo(pos.position.x, pos.position.y, destZ);
+                destZ += deltaZ;
+            }
+            if(t > maxT)
+                return null;
+            bc = pos.get().collide(pos, ray, cArgs);
+            if(bc !is null && bc.distance > maxT)
+                bc = null;
+            if(bc !is null)
+                return bc;
+        }
+    }
+
+    public RayCollision collide(Ray ray, float maxT, RayCollisionArgs cArgs)
+    {
+        RayCollision bc = collideBlock(ray, maxT, cArgs);
+        if(bc is null)
+            return collideEntity(ray, maxT, cArgs);
+        RayCollision ec = collideEntity(ray, bc.distance, cArgs);
+        return min(ec, bc);
     }
 }

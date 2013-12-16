@@ -19,6 +19,10 @@ module entity.player.player;
 public import entity.entity;
 import util;
 
+private immutable float playerHeight = 1.8;
+private immutable float playerEyeHeight = 1.7;
+private immutable float playerWidth = 0.5;
+
 private final class PlayerDescriptor : EntityDescriptor
 {
     public this()
@@ -55,6 +59,21 @@ private final class PlayerDescriptor : EntityDescriptor
         Player p = cast(Player)data.data;
         assert(p !is null);
         p.writeInternal(gss);
+    }
+
+    public override Collision collideWithCylinder(EntityData data, Cylinder c)
+    {
+        return collideCylinderWithCylinder(Cylinder(data.position - Vector(0, -playerEyeHeight, 0), 0.5 * playerWidth, playerHeight), data.dimension, c);
+    }
+
+    public override Collision collideWithBox(EntityData data, Matrix boxTransform)
+    {
+        return collideAABBWithBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), data.dimension, boxTransform);
+    }
+
+    public override RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs)
+    {
+        return collideWithAABB(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new EntityRayCollision(position, dimension, t, data);});
     }
 }
 

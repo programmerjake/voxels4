@@ -88,4 +88,19 @@ public final class BlockAnimTest : BlockDescriptor
     protected override void writeInternal(BlockData data, GameStoreStream gss)
     {
     }
+
+    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c)
+    {
+        return Collision();
+    }
+
+    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    {
+        return Collision();
+    }
+
+    public override RayCollision collide(BlockData pos, Ray ray, RayCollisionArgs cArgs)
+    {
+        return null;
+    }
 }

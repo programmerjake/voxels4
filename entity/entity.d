@@ -20,6 +20,7 @@ public import render.mesh;
 public import world.world;
 public import persistance.game_load_stream;
 public import persistance.game_store_stream;
+public import physics.physics;
 
 public struct EntityData
 {
@@ -47,6 +48,21 @@ public struct EntityData
         assert(good);
         descriptor.move(this, world, deltaTime);
     }
+    public Collision collideWithCylinder(Cylinder c)
+    {
+        assert(good);
+        return descriptor.collideWithCylinder(this, c);
+    }
+    public Collision collideWithBox(Matrix boxTransform)
+    {
+        assert(good);
+        return descriptor.collideWithBox(this, boxTransform);
+    }
+    public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
+    {
+        assert(good);
+        return descriptor.collide(this, ray, cArgs);
+    }
 }
 
 public abstract class EntityDescriptor
@@ -62,6 +78,9 @@ public abstract class EntityDescriptor
     protected abstract EntityData readInternal(GameLoadStream gls);
     public abstract void move(ref EntityData data, World world, in double deltaTime);
     protected abstract void writeInternal(EntityData data, GameStoreStream gss);
+    public abstract Collision collideWithCylinder(EntityData data, Cylinder c);
+    public abstract Collision collideWithBox(EntityData data, Matrix boxTransform);
+    public abstract RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs);
 
     public static void write(EntityData data, GameStoreStream gss)
     {

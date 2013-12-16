@@ -95,6 +95,21 @@ public abstract class StoneType : BlockDescriptor
     {
         return true;
     }
+
+    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c)
+    {
+        return collideAABBWithCylinder(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, c);
+    }
+
+    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
+    {
+        return collideAABBWithBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, boxTransform);
+    }
+
+    public override RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs)
+    {
+        return collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new BlockRayCollision(position, dimension, t, BlockPosition());});
+    }
 }
 
 public final class Stone : StoneType

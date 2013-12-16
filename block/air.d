@@ -79,7 +79,7 @@ public final class Air : BlockDescriptor
     {
     }
 
-    public override Collision collideWithCylinder(BlockPosition pos, Vector position, float radius, float height)
+    public override Collision collideWithCylinder(BlockPosition pos, Cylinder c)
     {
         return Collision();
     }
@@ -89,7 +89,7 @@ public final class Air : BlockDescriptor
         return Collision();
     }
 
-    public override RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
+    public override RayCollision collide(BlockData pos, Ray ray, RayCollisionArgs cArgs)
     {
         return null;
     }

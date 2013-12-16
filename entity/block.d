@@ -68,13 +68,18 @@ public final class BlockEntity : EntityDescriptor
         public Vector velocity;
     }
 
+    private Matrix getDrawTransform(EntityData data, Data * data_data)
+    {
+        return Matrix.rotateY(data_data.theta).concat(Matrix.translate(data.position - Vector(0, blockSize * 0.5, 0)));
+    }
+
     public override TransformedMesh getDrawMesh(ref EntityData data, RenderLayer rl)
     {
         Data * data_data = cast(Data *)data.data;
         if(data_data is null)
             return TransformedMesh();
         assert(data_data.block.good);
-        return TransformedMesh(data_data.block.getEntityDrawMesh(rl), Matrix.rotateY(data_data.theta).concat(Matrix.translate(data.position - Vector(0, blockSize * 0.5, 0))));
+        return TransformedMesh(data_data.block.getEntityDrawMesh(rl), getDrawTransform(data, data_data));
     }
 
     protected override EntityData readInternal(GameLoadStream gls)
@@ -164,5 +169,38 @@ public final class BlockEntity : EntityDescriptor
         gss.write(data_data.existDuration);
         BlockDescriptor.write(data_data.block, gss);
         gss.write(data_data.velocity);
+    }
+
+    public override Collision collideWithCylinder(EntityData data, Cylinder c)
+    {
+        return collideCylinderWithCylinder(Cylinder(data.position - Vector(0, -0.5 * blockSize, 0), 0.5 * blockSize * sqrt(2.0), blockSize), data.dimension, c);
+    }
+
+    public override Collision collideWithBox(EntityData data, Matrix boxTransform)
+    {
+        return collideAABBWithBox(data.position - 0.5 * blockSize * Vector.XYZ, data.position + 0.5 * blockSize * Vector.XYZ, data.dimension, boxTransform);
+    }
+
+    public override RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs)
+    {
+        static if(true) // TODO (jacob#): check if we need ray hits
+        {
+            Data * data_data = cast(Data *)data.data;
+            if(data_data is null)
+                return null;
+            assert(data_data.block.good);
+            Matrix drawTransform = getDrawTransform(data, data_data);
+            Matrix invDrawTransform = drawTransform.invert();
+            ray.transformAndSet(invDrawTransform);
+            RayCollision bc = data_data.block.collide(ray, cArgs);
+            if(bc is null)
+                return null;
+            bc.transformAndSet(drawTransform);
+            return new EntityRayCollision(bc, data);
+        }
+        else
+        {
+            return null;
+        }
     }
 }

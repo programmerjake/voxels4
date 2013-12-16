@@ -64,21 +64,37 @@ public struct BlockData
         assert(good);
         return descriptor.isOpaque(this);
     }
-    public Collision collideWithCylinder(BlockPosition pos, Vector position, float radius, float height)
+    public Collision collideWithCylinder(BlockPosition pos, Cylinder c)
     {
         assert(good);
-        return descriptor.collideWithCylinder(pos, position, radius, height);
+        return descriptor.collideWithCylinder(pos, c);
     }
     public Collision collideWithBox(BlockPosition pos, Matrix boxTransform)
     {
         assert(good);
         return descriptor.collideWithBox(pos, boxTransform);
     }
-    public RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
+    public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
     {
         if(!good)
-            return collideWithBlock(cast(Position)pos.position, ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new UninitializedRayCollision(position, dimension, t);});
-        return descriptor.collide(pos, ray, cArgs);
+            return collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new UninitializedRayCollision(position, dimension, t);});
+        return descriptor.collide(this, ray, cArgs);
+    }
+    public RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
+    {
+        ray.origin -= Vector(pos.position.x, pos.position.y, pos.position.z);
+        RayCollision retval;
+        if(!good)
+            retval = collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new UninitializedRayCollision(position, dimension, t);});
+        else
+            retval = descriptor.collide(this, ray, cArgs);
+        if(cast(BlockRayCollision)retval !is null)
+        {
+            (cast(BlockRayCollision)retval).block = pos;
+        }
+        if(retval !is null)
+            retval.point += Vector(pos.position.x, pos.position.y, pos.position.z);
+        return retval;
     }
 }
 
@@ -102,9 +118,9 @@ public abstract class BlockDescriptor
         return 0;
     }
     protected abstract void writeInternal(BlockData data, GameStoreStream gss);
-    public abstract Collision collideWithCylinder(BlockPosition pos, Vector position, float radius, float height);
+    public abstract Collision collideWithCylinder(BlockPosition pos, Cylinder c);
     public abstract Collision collideWithBox(BlockPosition pos, Matrix boxTransform);
-    public abstract RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs);
+    public abstract RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs);
 
     public static void write(BlockData data, GameStoreStream gss)
     {
