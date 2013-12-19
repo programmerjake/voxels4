@@ -84,7 +84,7 @@ public final class Air : BlockDescriptor
         return Collision();
     }
 
-    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform, CollisionMask mask)
+    public override Collision collideWithBox(BlockPosition pos, Vector min, Vector max, CollisionMask mask)
     {
         return Collision();
     }

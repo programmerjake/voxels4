@@ -101,9 +101,9 @@ public abstract class StoneType : BlockDescriptor
         return collideAABBWithCylinder(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, c);
     }
 
-    public override Collision collideWithBox(BlockPosition pos, Matrix boxTransform, CollisionMask mask)
+    public override Collision collideWithBox(BlockPosition pos, Vector min, Vector max, CollisionMask mask)
     {
-        return collideAABBWithBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, boxTransform);
+        return collideAABBWithBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension, min, max);
     }
 
     public override RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs)

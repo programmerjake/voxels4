@@ -58,15 +58,21 @@ public struct EntityData
         assert(good);
         return descriptor.collideWithCylinder(this, c, mask);
     }
-    public Collision collideWithBox(Matrix boxTransform, CollisionMask mask)
+    public Collision collideWithBox(Vector min, Vector max, CollisionMask mask)
     {
         assert(good);
-        return descriptor.collideWithBox(this, boxTransform, mask);
+        return descriptor.collideWithBox(this, min, max, mask);
     }
     public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
     {
         assert(good);
         return descriptor.collide(this, ray, cArgs);
+    }
+    public ulong getCollideMask()
+    {
+        if(!good)
+            return 0;
+        return descriptor.getCollideMask();
     }
 }
 
@@ -87,8 +93,9 @@ public abstract class EntityDescriptor
     }
     protected abstract void writeInternal(EntityData data, GameStoreStream gss);
     public abstract Collision collideWithCylinder(ref EntityData data, Cylinder c, CollisionMask mask);
-    public abstract Collision collideWithBox(ref EntityData data, Matrix boxTransform, CollisionMask mask);
+    public abstract Collision collideWithBox(ref EntityData data, Vector min, Vector max, CollisionMask mask);
     public abstract RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs);
+    public abstract ulong getCollideMask();
 
     public static void write(EntityData data, GameStoreStream gss)
     {

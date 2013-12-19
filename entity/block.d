@@ -27,9 +27,11 @@ private immutable float blockSize = 0.25;
 public final class BlockEntity : EntityDescriptor
 {
     private static BlockEntity BLOCK_;
+    private static ulong BLOCK_MASK_;
     static this()
     {
         BLOCK_ = new BlockEntity();
+        BLOCK_MASK_ = CollisionMask.getNewCollisionMaskBit();
     }
     private static @property BlockEntity BLOCK()
     {
@@ -38,6 +40,11 @@ public final class BlockEntity : EntityDescriptor
     private this()
     {
         super("Default.Block");
+    }
+
+    public static @property ulong BLOCK_MASK()
+    {
+        return BLOCK_MASK_;
     }
 
     public static immutable double INITIAL_EXIST_DURATION = 60.0 * 6; // 6 minutes
@@ -147,20 +154,33 @@ public final class BlockEntity : EntityDescriptor
             return;
         }
         data_data.velocity += deltaTime * World.GRAVITY;
-        data_data.newPosition = data.position + deltaTime * data_data.velocity;
-        for(int i = 0; i < 1; i++)
+        bool anyCollision = false;
+        Vector deltaPosition = data_data.velocity * deltaTime;
+        int count = iceil(10 * abs(deltaPosition) + 1);
+        data_data.newPosition = data.position;
+        for(int i = 0; i < count; i++)
         {
-            Collision c = world.collideWithCylinder(data.dimension, Cylinder(data.position - Vector(0, -0.5 * blockSize, 0), 0.5 * blockSize * sqrt(2.0), blockSize), CollisionMask(~Player.PLAYER_MASK, &data));
+            data_data.newPosition = data_data.newPosition + deltaPosition / count;
+            static if(true)
+            {
+                Collision c = world.collideWithBoxBlocksOnly(data.dimension, data_data.newPosition + 0.5 * blockSize * Vector.NXNYNZ, data_data.newPosition + 0.5 * blockSize * Vector.XYZ, CollisionMask(~Player.PLAYER_MASK & ~BLOCK_MASK, &data));
+            }
+            else
+            {
+                Vector offset = Vector(0, -0.5 * blockSize, 0);
+                Collision c = world.collideWithCylinder(data.dimension, Cylinder(data_data.newPosition + offset, 0.5 * blockSize * sqrt(2.0), blockSize), CollisionMask(~Player.PLAYER_MASK & ~BLOCK_MASK, &data));
+            }
             if(c.good)
             {
                 c.normalize();
-                data_data.velocity = c.normal;
-                data_data.newPosition = c.point + c.normal * 0.01;
-                data_data.angularVelocity *= pow(0.1, deltaTime);
+                c.normal = normalize(c.normal);
+                data_data.velocity = Vector.ZERO;
+                data_data.newPosition = c.point + 1e-4 * c.normal;
+                anyCollision = true;
             }
-            else
-                break;
         }
+        if(anyCollision)
+            data_data.angularVelocity *= pow(0.1, deltaTime);
         data_data.theta += deltaTime * data_data.angularVelocity;
         if(data.position.y < -64)
         {
@@ -184,18 +204,23 @@ public final class BlockEntity : EntityDescriptor
         gss.write(data_data.velocity);
     }
 
+    public override ulong getCollideMask()
+    {
+        return BLOCK_MASK;
+    }
+
     public override Collision collideWithCylinder(ref EntityData data, Cylinder c, CollisionMask mask)
     {
-        if(!mask.matches(~Player.PLAYER_MASK, &data))
+        if(!mask.matches(BLOCK_MASK, &data))
             return Collision();
         return collideCylinderWithCylinder(Cylinder(data.position - Vector(0, -0.5 * blockSize, 0), 0.5 * blockSize * sqrt(2.0), blockSize), data.dimension, c);
     }
 
-    public override Collision collideWithBox(ref EntityData data, Matrix boxTransform, CollisionMask mask)
+    public override Collision collideWithBox(ref EntityData data, Vector min, Vector max, CollisionMask mask)
     {
-        if(!mask.matches(~Player.PLAYER_MASK, &data))
+        if(!mask.matches(BLOCK_MASK, &data))
             return Collision();
-        return collideAABBWithBox(data.position - 0.5 * blockSize * Vector.XYZ, data.position + 0.5 * blockSize * Vector.XYZ, data.dimension, boxTransform);
+        return collideAABBWithBox(data.position - 0.5 * blockSize * Vector.XYZ, data.position + 0.5 * blockSize * Vector.XYZ, data.dimension, min, max);
     }
 
     public override RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs)

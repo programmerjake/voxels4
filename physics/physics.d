@@ -22,6 +22,7 @@ import util;
 import world.world;
 import entity.entity;
 import block.block;
+import std.stdio;
 
 public struct CollisionMask
 {
@@ -54,7 +55,7 @@ public struct CollisionMask
 
 public struct Collision
 {
-    public Vector point; /// the point to move to
+    public Vector point; /// the point to move the center to
     public Vector normal = Vector(0, 0, 0);
     public int count = 0;
     public Dimension dimension;
@@ -719,28 +720,27 @@ public Collision collideAABBWithCylinder(Vector min, Vector max, Dimension dimen
         if(absSquared(Vector(center.x, 0, center.z)) * (c.height * c.height) <= absSquared(Vector(0, center.y - c.height * 0.5, 0)) * (c.r * c.r))
         {
             if(center.y < c.height * 0.5)
-                retval = Collision(c.origin, dimension, Vector.Y);
+                retval = Collision(Vector(c.origin.x, c.origin.y + max.y + c.height * 0.5, c.origin.z), dimension, Vector.Y);
             else
-                retval = Collision(c.origin + Vector(0, c.height, 0), dimension, Vector.NY);
+                retval = Collision(Vector(c.origin.x, c.origin.y + min.y - c.height * 0.5, c.origin.z), dimension, Vector.NY);
         }
         else
         {
             if(fabs(center.x) * (max.z - min.z) > fabs(center.z) * (max.x - min.x))
             {
                 if(center.x < 0)
-                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.X);
+                    retval = Collision(c.origin + Vector(-c.r, c.height * 0.5, 0), dimension, Vector.X);
                 else
-                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.NX);
+                    retval = Collision(c.origin + Vector(c.r, c.height * 0.5, 0), dimension, Vector.NX);
             }
             else
             {
                 if(center.z < 0)
-                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.Z);
+                    retval = Collision(c.origin + Vector(0, c.height * 0.5, -c.r), dimension, Vector.Z);
                 else
-                    retval = Collision(c.origin + Vector(0, c.height * 0.5, 0), dimension, Vector.NZ);
+                    retval = Collision(c.origin + Vector(0, c.height * 0.5, c.r), dimension, Vector.NZ);
             }
         }
-        retval.point = getSurfacePointOnAABB(min + c.origin, max + c.origin, retval.point);
         return retval;
     }
     return Collision();
@@ -771,57 +771,69 @@ private Vector getAABBWithBoxNormal(Vector min, Vector max, Vector pt)
     return minPEq.dir;
 }
 
-public Collision collideAABBWithBox(Vector min, Vector max, Dimension dimension, Matrix boxTransform)
+public Collision collideAABBWithBox(Vector aMin, Vector aMax, Dimension dimension, Vector bMin, Vector bMax)
 {
-    Vector[8] pts;
-    bool retval = false;
-    foreach(int i, ref Vector p; pts)
+    Vector boxCenter = 0.5 * (bMin + bMax);
+    if(aMin.x > bMax.x)
+        return Collision();
+    if(aMax.x < bMin.x)
+        return Collision();
+    if(aMin.y > bMax.y)
+        return Collision();
+    if(aMax.y < bMin.y)
+        return Collision();
+    if(aMin.z > bMax.z)
+        return Collision();
+    if(aMax.z < bMin.z)
+        return Collision();
+    float closest = -1;
+    Vector newCenter, normal;
+    float t;
+    t = bMax.x - aMin.x;
+    if(t < closest || closest == -1)
     {
-        p = boxTransform.apply(Vector(i & 1 ? 1 : 0, i & 2 ? 1 : 0, i & 4 ? 1 : 0));
-        if(p.x >= min.x && p.x <= max.x && p.y >= min.y && p.y <= max.y && p.z >= min.z && p.z <= max.z)
-        {
-            return Collision(getSurfacePointOnAABB(min, max, p), dimension, getAABBWithBoxNormal(min, max, p));
-        }
+        closest = t;
+        newCenter = boxCenter - Vector(t, 0, 0);
+        normal = Vector.NX;
     }
-    PlaneEq[6] peqs =
-    [
-        PlaneEq(Vector.NX, Vector.ZERO),
-        PlaneEq(Vector.X, Vector.X),
-        PlaneEq(Vector.NY, Vector.ZERO),
-        PlaneEq(Vector.Y, Vector.Y),
-        PlaneEq(Vector.NZ, Vector.ZERO),
-        PlaneEq(Vector.Z, Vector.Z)
-    ];
-    foreach(ref PlaneEq peq; peqs)
+    t = aMax.x - bMin.x;
+    if(t < closest || closest == -1)
     {
-        peq.transformAndSet(boxTransform);
+        closest = t;
+        newCenter = boxCenter + Vector(t, 0, 0);
+        normal = Vector.X;
     }
-    for(int i = 0; i <= 0x7; i++)
+
+    t = bMax.y - aMin.y;
+    if(t < closest || closest == -1)
     {
-        Vector p = Vector(i & 1 ? min.x : max.x, i & 2 ? min.y : max.y, i & 4 ? min.z : max.z);
-        bool inside = true;
-        float minDistance = -1;
-        PlaneEq minPEq;
-        foreach(PlaneEq peq; peqs)
-        {
-            float distance = peq.eval(p);
-            if(distance > 0)
-            {
-                inside = false;
-                break;
-            }
-            if(minDistance < 0 || minDistance > distance)
-            {
-                minPEq = peq;
-                minDistance = distance;
-            }
-        }
-        if(inside)
-        {
-            return Collision(getSurfacePointOnAABB(min, max, p), dimension, minPEq.dir);
-        }
+        closest = t;
+        newCenter = boxCenter - Vector(0, t, 0);
+        normal = Vector.NY;
     }
-    return Collision();
+    t = aMax.y - bMin.y;
+    if(t < closest || closest == -1)
+    {
+        closest = t;
+        newCenter = boxCenter + Vector(0, t, 0);
+        normal = Vector.Y;
+    }
+
+    t = bMax.z - aMin.z;
+    if(t < closest || closest == -1)
+    {
+        closest = t;
+        newCenter = boxCenter - Vector(0, 0, t);
+        normal = Vector.NZ;
+    }
+    t = aMax.z - bMin.z;
+    if(t < closest || closest == -1)
+    {
+        closest = t;
+        newCenter = boxCenter + Vector(0, 0, t);
+        normal = Vector.Z;
+    }
+    return Collision(newCenter, dimension, normal);
 }
 
 public Collision collideCylinderWithCylinder(Cylinder a, Dimension dimension, Cylinder b)
@@ -836,13 +848,10 @@ public Collision collideCylinderWithCylinder(Cylinder a, Dimension dimension, Cy
     if(absSquared(xzDiff) > (a.r + b.r) * (a.r + b.r))
         return Collision();
     float rOverlap = a.r + b.r - abs(xzDiff);
-    float closestR = abs(xzDiff) - a.r;
-    if(closestR < 0)
-        closestR = 0;
-    if(rOverlap > a.r)
-        rOverlap = a.r;
-    if(rOverlap > b.r)
-        rOverlap = b.r;
+    if(rOverlap > 2 * a.r)
+        rOverlap = 2 * a.r;
+    if(rOverlap > 2 * b.r)
+        rOverlap = 2 * b.r;
     float yOverlap;
     if(a.origin.y > 0)
     {
@@ -866,26 +875,15 @@ public Collision collideCylinderWithCylinder(Cylinder a, Dimension dimension, Cy
             yOverlap = a.origin.y + a.height;
         }
     }
-    float closestY;
-    if(a.origin.y > b.height * 0.5)
-        closestY = a.origin.y;
-    else if(a.origin.y + a.height < b.height * 0.5)
-        closestY = a.origin.y + a.height;
-    else
-    {
-        closestY = b.height * 0.5;
-        closestR = a.r;
-    }
     Vector xzDiffDir = normalize(xzDiff);
-    Vector closestPt = xzDiffDir * closestR + Vector(0, closestY, 0);
-    if(rOverlap > yOverlap)
+    if(rOverlap < yOverlap)
     {
         if(a.origin.y + a.height * 0.5 - b.height * 0.5 > 0)
-            return Collision(closestPt + b.origin, dimension, Vector.NY);
-        return Collision(closestPt + b.origin, dimension, Vector.Y);
+            return Collision(a.origin + Vector(0, a.height * 0.5 - yOverlap, 0) + b.origin, dimension, Vector.NY);
+        return Collision(a.origin + Vector(0, a.height * 0.5 + yOverlap, 0) + b.origin, dimension, Vector.Y);
     }
     else
     {
-        return Collision(closestPt + b.origin, dimension, -xzDiffDir);
+        return Collision(a.origin + Vector(0, a.height * 0.5, 0) + b.origin - xzDiffDir * rOverlap, dimension, -xzDiffDir);
     }
 }

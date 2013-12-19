@@ -61,6 +61,11 @@ private final class PlayerDescriptor : EntityDescriptor
         p.writeInternal(gss);
     }
 
+    public override ulong getCollideMask()
+    {
+        return Player.PLAYER_MASK;
+    }
+
     public override Collision collideWithCylinder(ref EntityData data, Cylinder c, CollisionMask mask)
     {
         if(!mask.matches(Player.PLAYER_MASK, &data))
@@ -68,11 +73,11 @@ private final class PlayerDescriptor : EntityDescriptor
         return collideCylinderWithCylinder(Cylinder(data.position - Vector(0, -playerEyeHeight, 0), 0.5 * playerWidth, playerHeight), data.dimension, c);
     }
 
-    public override Collision collideWithBox(ref EntityData data, Matrix boxTransform, CollisionMask mask)
+    public override Collision collideWithBox(ref EntityData data, Vector min, Vector max, CollisionMask mask)
     {
         if(!mask.matches(Player.PLAYER_MASK, &data))
             return Collision();
-        return collideAABBWithBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), data.dimension, boxTransform);
+        return collideAABBWithBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), data.dimension, min, max);
     }
 
     public override RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs)

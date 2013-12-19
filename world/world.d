@@ -1792,6 +1792,32 @@ public final class World
         return 0;
     }
 
+    public Collision collideWithCylinderBlocksOnly(Dimension dimension, Cylinder c, CollisionMask mask)
+    {
+        EntityRange eRange = EntityRange(c.origin.x - c.r, c.origin.y, c.origin.z - c.r, c.origin.x + c.r, c.origin.y + c.height, c.origin.z + c.r, dimension);
+        BlockRange bRange = BlockRange(eRange);
+        Collision retval = Collision();
+        foreach(BlockPosition pos; bRange.iterate(this))
+        {
+            if(pos.get().good)
+                retval = combine(retval, pos.get().collideWithCylinder(pos, c, mask));
+        }
+        return retval;
+    }
+
+    public Collision collideWithBoxBlocksOnly(Dimension dimension, Vector min, Vector max, CollisionMask mask)
+    {
+        EntityRange eRange = EntityRange(min.x, min.y, min.z, max.x, max.y, max.z, dimension);
+        BlockRange bRange = BlockRange(eRange);
+        Collision retval = Collision();
+        foreach(BlockPosition pos; bRange.iterate(this))
+        {
+            if(pos.get().good)
+                retval = combine(retval, pos.get().collideWithBox(pos, min, max, mask));
+        }
+        return retval;
+    }
+
     public Collision collideWithCylinder(Dimension dimension, Cylinder c, CollisionMask mask)
     {
         EntityRange eRange = EntityRange(c.origin.x - c.r, c.origin.y, c.origin.z - c.r, c.origin.x + c.r, c.origin.y + c.height, c.origin.z + c.r, dimension);
@@ -1805,7 +1831,8 @@ public final class World
         Collision retval = Collision();
         foreach(ref EntityData entity; eRange.iterate(this))
         {
-            retval = combine(retval, entity.collideWithCylinder(c, mask));
+            if(mask.mask & entity.getCollideMask())
+                retval = combine(retval, entity.collideWithCylinder(c, mask));
         }
         foreach(BlockPosition pos; bRange.iterate(this))
         {
@@ -1815,17 +1842,9 @@ public final class World
         return retval;
     }
 
-    public Collision collideWithBox(Dimension dimension, Matrix boxTransform, CollisionMask mask)
+    public Collision collideWithBox(Dimension dimension, Vector min, Vector max, CollisionMask mask)
     {
-        Vector p = boxTransform.apply(Vector.ZERO);
-        EntityRange eRange = EntityRange(p.x, p.y, p.z, p.x, p.y, p.z, dimension);
-        eRange.addPoint(boxTransform.apply(Vector.X));
-        eRange.addPoint(boxTransform.apply(Vector.Y));
-        eRange.addPoint(boxTransform.apply(Vector.XY));
-        eRange.addPoint(boxTransform.apply(Vector.Z));
-        eRange.addPoint(boxTransform.apply(Vector.XZ));
-        eRange.addPoint(boxTransform.apply(Vector.YZ));
-        eRange.addPoint(boxTransform.apply(Vector.XYZ));
+        EntityRange eRange = EntityRange(min.x, min.y, min.z, max.x, max.y, max.z, dimension);
         BlockRange bRange = BlockRange(eRange);
         eRange.minx -= assumedMaxEntitySize;
         eRange.miny -= assumedMaxEntitySize;
@@ -1836,12 +1855,13 @@ public final class World
         Collision retval = Collision();
         foreach(ref EntityData entity; eRange.iterate(this))
         {
-            retval = combine(retval, entity.collideWithBox(boxTransform, mask));
+            if(mask.mask & entity.getCollideMask())
+                retval = combine(retval, entity.collideWithBox(min, max, mask));
         }
         foreach(BlockPosition pos; bRange.iterate(this))
         {
             if(pos.get().good)
-                retval = combine(retval, pos.get().collideWithBox(pos, boxTransform, mask));
+                retval = combine(retval, pos.get().collideWithBox(pos, min, max, mask));
         }
         return retval;
     }
