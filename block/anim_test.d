@@ -103,4 +103,14 @@ public final class BlockAnimTest : BlockDescriptor
     {
         return null;
     }
+
+    public override BoxList getCollisionBoxes(BlockPosition pos)
+    {
+        return [];
+    }
+
+    public override ulong getCollisionMask()
+    {
+        return CollisionMask.COLLIDE_NONE;
+    }
 }

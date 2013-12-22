@@ -96,6 +96,18 @@ public struct BlockData
             retval.point += Vector(pos.position.x, pos.position.y, pos.position.z);
         return retval;
     }
+    public BoxList getCollisionBoxes(BlockPosition pos)
+    {
+        if(!good)
+            return [CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension)];
+        return descriptor.getCollisionBoxes(pos);
+    }
+    public ulong getCollisionMask()
+    {
+        if(!good)
+            return ~0;
+        return descriptor.getCollisionMask();
+    }
 }
 
 public abstract class BlockDescriptor
@@ -121,6 +133,8 @@ public abstract class BlockDescriptor
     public abstract Collision collideWithCylinder(BlockPosition pos, Cylinder c, CollisionMask mask);
     public abstract Collision collideWithBox(BlockPosition pos, Vector min, Vector max, CollisionMask mask);
     public abstract RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs);
+    public abstract BoxList getCollisionBoxes(BlockPosition pos);
+    public abstract ulong getCollisionMask();
 
     public static void write(BlockData data, GameStoreStream gss)
     {

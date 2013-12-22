@@ -18,6 +18,7 @@
 module entity.player.player;
 public import entity.entity;
 import util;
+import entity.block;
 
 private immutable float playerHeight = 1.8;
 private immutable float playerEyeHeight = 1.7;
@@ -49,7 +50,7 @@ private final class PlayerDescriptor : EntityDescriptor
     {
         Player p = cast(Player)data.data;
         assert(p !is null);
-        p.move(world, deltaTime);
+        p.move(world, deltaTime, &data);
         data.position = p.position;
         data.dimension = p.dimension;
     }
@@ -228,7 +229,7 @@ public final class Player
     }
 
     private string name;
-    package Vector position;
+    package Vector position, velocity;
     package Dimension dimension;
     private float viewTheta, viewPhi;
     private PlayerInput input;
@@ -249,6 +250,7 @@ public final class Player
         Player retval = new Player();
         retval.name = name;
         retval.position = position;
+        retval.velocity = Vector.ZERO;
         retval.dimension = dimension;
         retval.input = input;
         retval.viewTheta = 0;
@@ -275,7 +277,7 @@ public final class Player
         assert(false, "finish"); //FIXME (jacob#): finish
     }
 
-    public void move(World world, in double deltaTime)
+    public void move(World world, in double deltaTime, EntityData * data)
     {
         //FIXME (jacob#): finish
         input.move();
@@ -287,23 +289,47 @@ public final class Player
             event.dispatch(this);
         }
         const float moveVelocity = 2.5;
+        Vector deltaPosition = Vector.ZERO;
         if(input.flyMode)
         {
             if(input.motionUp)
-                position.y += deltaTime * moveVelocity;
+                deltaPosition.y = deltaTime * moveVelocity;
             else if(input.motionDown)
-                position.y -= deltaTime * moveVelocity;
+                deltaPosition.y = -deltaTime * moveVelocity;
+        }
+        else
+        {
+            deltaPosition += deltaTime * velocity;
+            velocity += deltaTime * World.GRAVITY;
         }
         Vector forward = Matrix.rotateY(-viewTheta).apply(Vector.NZ);
         Vector left = Matrix.rotateY(-viewTheta).apply(Vector.NX);
         if(input.motionLeft)
-            position += deltaTime * moveVelocity * left;
+            deltaPosition += deltaTime * moveVelocity * left;
         else if(input.motionRight)
-            position -= deltaTime * moveVelocity * left;
+            deltaPosition -= deltaTime * moveVelocity * left;
         if(input.motionForward)
-            position += deltaTime * moveVelocity * forward;
+            deltaPosition += deltaTime * moveVelocity * forward;
         else if(input.motionBack)
-            position -= deltaTime * moveVelocity * forward;
+            deltaPosition -= deltaTime * moveVelocity * forward;
+        int count = iceil(10 * abs(deltaPosition) + 1);
+        try
+        {
+            for(int i = 0; i < count; i++)
+            {
+                position += deltaPosition / count;
+                Vector delta = world.findBestBoxPositionWithBlocksOnly(CollisionBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), dimension), CollisionMask(~BlockEntity.BLOCK_MASK, data));
+                if(delta != Vector.ZERO)
+                {
+                    position += delta;
+                    velocity = Vector.ZERO;
+                }
+            }
+        }
+        catch(World.NoSpaceToPutException e)
+        {
+            return;
+        }
     }
 
     package void writeInternal(GameStoreStream gss)

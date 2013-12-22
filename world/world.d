@@ -1865,4 +1865,34 @@ public final class World
         }
         return retval;
     }
+
+    public static final class NoSpaceToPutException : Exception
+    {
+        this()
+        {
+            super("no space to put the box");
+        }
+    }
+
+    public Vector findBestBoxPositionWithBlocksOnly(CollisionBox movableBox, CollisionMask mask)
+    {
+        static immutable float searchDistance = 0.5;
+        EntityRange er = EntityRange(movableBox.min.x - 1 - searchDistance, movableBox.min.y - 1 - searchDistance, movableBox.min.z - 1 - searchDistance, movableBox.max.x + 1 + searchDistance, movableBox.max.y + 1 + searchDistance, movableBox.max.z + 1 + searchDistance, movableBox.dimension);
+        BlockRange r = BlockRange(er);
+        BoxList boxes = [];
+        foreach(BlockPosition pos; r.iterate(this))
+        {
+            BlockData b = pos.get();
+            if(b.getCollisionMask() & mask.mask)
+                boxes ~= b.getCollisionBoxes(pos);
+        }
+        Vector retval = .findBestBoxPosition(movableBox, boxes);
+        if(retval.x < -searchDistance || retval.x > searchDistance)
+            throw new NoSpaceToPutException();
+        if(retval.y < -searchDistance || retval.y > searchDistance)
+            throw new NoSpaceToPutException();
+        if(retval.z < -searchDistance || retval.z > searchDistance)
+            throw new NoSpaceToPutException();
+        return retval;
+    }
 }

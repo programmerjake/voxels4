@@ -39,12 +39,6 @@ import entity.player.player;
 import entity.player.input;
 import persistance.game_version;
 
-void dumpPixel(int x, int y)
-{
-    Color c = TextureAtlas.texture.getPixel(x, y);
-    writefln("%s, %s : %s, %s, %s, %s", x, y, c.rf, c.gf, c.bf, c.af);
-}
-
 int main(string[] args)
 {
     bool done = false;

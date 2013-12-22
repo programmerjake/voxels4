@@ -26,15 +26,12 @@ private immutable float blockSize = 0.25;
 
 public final class BlockEntity : EntityDescriptor
 {
-    private static BlockEntity BLOCK_;
-    private static ulong BLOCK_MASK_;
-    static this()
-    {
-        BLOCK_ = new BlockEntity();
-        BLOCK_MASK_ = CollisionMask.getNewCollisionMaskBit();
-    }
+    private static BlockEntity BLOCK_ = null;
+    private static ulong BLOCK_MASK_ = 0;
     private static @property BlockEntity BLOCK()
     {
+        if(BLOCK_ is null)
+            BLOCK_ = new BlockEntity();
         return BLOCK_;
     }
     private this()
@@ -42,8 +39,16 @@ public final class BlockEntity : EntityDescriptor
         super("Default.Block");
     }
 
+    public static void init()
+    {
+        BLOCK_MASK;
+        BLOCK;
+    }
+
     public static @property ulong BLOCK_MASK()
     {
+        if(BLOCK_MASK_ == 0)
+            BLOCK_MASK_ = CollisionMask.getNewCollisionMaskBit();
         return BLOCK_MASK_;
     }
 
@@ -158,26 +163,39 @@ public final class BlockEntity : EntityDescriptor
         Vector deltaPosition = data_data.velocity * deltaTime;
         int count = iceil(10 * abs(deltaPosition) + 1);
         data_data.newPosition = data.position;
-        for(int i = 0; i < count; i++)
+        try
         {
-            data_data.newPosition = data_data.newPosition + deltaPosition / count;
-            static if(true)
+            for(int i = 0; i < count; i++)
             {
-                Collision c = world.collideWithBoxBlocksOnly(data.dimension, data_data.newPosition + 0.5 * blockSize * Vector.NXNYNZ, data_data.newPosition + 0.5 * blockSize * Vector.XYZ, CollisionMask(~Player.PLAYER_MASK & ~BLOCK_MASK, &data));
+                data_data.newPosition = data_data.newPosition + deltaPosition / count;
+                static if(false)
+                {
+                    Collision c = world.collideWithBoxBlocksOnly(data.dimension, data_data.newPosition + 0.5 * blockSize * Vector.NXNYNZ, data_data.newPosition + 0.5 * blockSize * Vector.XYZ, CollisionMask(~Player.PLAYER_MASK & ~BLOCK_MASK, &data));
+                    if(c.good)
+                    {
+                        c.normalize();
+                        c.normal = normalize(c.normal);
+                        data_data.velocity = Vector.ZERO;
+                        data_data.newPosition = c.point + 1e-4 * c.normal;
+                        anyCollision = true;
+                    }
+                }
+                else
+                {
+                    Vector delta = world.findBestBoxPositionWithBlocksOnly(CollisionBox(data_data.newPosition + 0.5 * blockSize * Vector.NXNYNZ, data_data.newPosition + 0.5 * blockSize * Vector.XYZ, data.dimension), CollisionMask(~Player.PLAYER_MASK & ~BLOCK_MASK, &data));
+                    if(delta != Vector.ZERO)
+                    {
+                        data_data.newPosition += delta;
+                        anyCollision = true;
+                        data_data.velocity = Vector.ZERO;
+                    }
+                }
             }
-            else
-            {
-                Vector offset = Vector(0, -0.5 * blockSize, 0);
-                Collision c = world.collideWithCylinder(data.dimension, Cylinder(data_data.newPosition + offset, 0.5 * blockSize * sqrt(2.0), blockSize), CollisionMask(~Player.PLAYER_MASK & ~BLOCK_MASK, &data));
-            }
-            if(c.good)
-            {
-                c.normalize();
-                c.normal = normalize(c.normal);
-                data_data.velocity = Vector.ZERO;
-                data_data.newPosition = c.point + 1e-4 * c.normal;
-                anyCollision = true;
-            }
+        }
+        catch(World.NoSpaceToPutException e)
+        {
+            data.descriptor = null;
+            return;
         }
         if(anyCollision)
             data_data.angularVelocity *= pow(0.1, deltaTime);

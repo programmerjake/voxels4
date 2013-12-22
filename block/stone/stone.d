@@ -110,6 +110,16 @@ public abstract class StoneType : BlockDescriptor
     {
         return collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new BlockRayCollision(position, dimension, t, BlockPosition());});
     }
+
+    public override BoxList getCollisionBoxes(BlockPosition pos)
+    {
+        return [CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension)];
+    }
+
+    public override ulong getCollisionMask()
+    {
+        return CollisionMask.COLLIDE_ALL;
+    }
 }
 
 public final class Stone : StoneType

@@ -23,9 +23,50 @@ import world.world;
 import entity.entity;
 import block.block;
 import std.stdio;
+import std.algorithm;
+
+public struct CollisionBox
+{
+    public Vector min, max;
+    public Dimension dimension;
+    public this(Vector min, Vector max, Dimension dimension)
+    {
+        this.min = min;
+        this.max = max;
+        this.dimension = dimension;
+    }
+    public @property Vector center() const
+    {
+        return (min + max) * 0.5;
+    }
+    public @property void center(Vector c)
+    {
+        c -= center;
+        min += c;
+        max += c;
+    }
+    public pure bool collides(CollisionBox rt) const
+    {
+        if(rt.min.x > max.x || rt.max.x < min.x)
+            return false;
+        if(rt.min.y > max.y || rt.max.y < min.y)
+            return false;
+        if(rt.min.z > max.z || rt.max.z < min.z)
+            return false;
+        return true;
+    }
+    public pure bool collides(BoxList rt) const
+    {
+        return .collides(rt, this);
+    }
+}
+
+public alias const(CollisionBox)[] BoxList;
 
 public struct CollisionMask
 {
+    public static immutable ulong COLLIDE_ALL = ~0L;
+    public static immutable ulong COLLIDE_NONE = 0L;
     private static shared ulong nextCollisionMaskBit = 0x1;
     public static ulong getNewCollisionMaskBit()
     {
@@ -34,7 +75,7 @@ public struct CollisionMask
         nextCollisionMaskBit <<= 1;
         return retval;
     }
-    public ulong mask = ~0;
+    public ulong mask = COLLIDE_ALL;
     public EntityData * ignore = null;
     public this(ulong mask, EntityData * ignore = null)
     {
@@ -43,7 +84,7 @@ public struct CollisionMask
     }
     public this(EntityData * ignore)
     {
-        this(~0, ignore);
+        this(COLLIDE_ALL, ignore);
     }
     public bool matches(ulong mask, EntityData * e)
     {
@@ -79,6 +120,94 @@ public struct Collision
             count = 1;
         }
     }
+}
+
+public pure bool collides(BoxList boxes, CollisionBox box)
+{
+    foreach(CollisionBox b; boxes)
+    {
+        if(box.collides(b))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+private void addToList(ref float[] list, ref int length, float v)
+{
+    if(list.length <= length)
+    {
+        list.length = 3 * length / 2 + 1;
+    }
+    list[length++] = v;
+}
+
+public Vector findBestBoxPosition(CollisionBox movableBox, BoxList boxes)
+{
+    static float[] x = [0.0f], y = [0.0f], z = [0.0f];
+    x[0] = 0;
+    y[0] = 0;
+    z[0] = 0;
+    int xLength = 1, yLength = 1, zLength = 1;
+    if(!collides(boxes, movableBox))
+        return Vector.ZERO;
+    foreach(CollisionBox b; boxes)
+    {
+        if(b.max.x > movableBox.min.x)
+            addToList(x, xLength, b.max.x - movableBox.min.x + eps);
+        if(b.min.x < movableBox.max.x)
+            addToList(x, xLength, b.min.x - movableBox.max.x - eps);
+        if(b.max.y > movableBox.min.y)
+            addToList(y, yLength, b.max.y - movableBox.min.y + eps);
+        if(b.min.y < movableBox.max.y)
+            addToList(y, yLength, b.min.y - movableBox.max.y - eps);
+        if(b.max.z > movableBox.min.z)
+            addToList(z, zLength, b.max.z - movableBox.min.z + eps);
+        if(b.min.z < movableBox.max.z)
+            addToList(z, zLength, b.min.z - movableBox.max.z - eps);
+    }
+    sort!"fabs(a) < fabs(b)"(x[0 .. xLength]);
+    sort!"fabs(a) < fabs(b)"(y[0 .. yLength]);
+    sort!"fabs(a) < fabs(b)"(z[0 .. zLength]);
+    Vector retval;
+    float shortestDistanceSquared = 1e20;
+    foreach(float dx; x[0 .. xLength])
+    {
+        float dxSquared = dx * dx;
+        if(dxSquared > shortestDistanceSquared)
+            break;
+        CollisionBox b = movableBox;
+        b.min.x = movableBox.min.x + dx;
+        b.max.x = movableBox.max.x + dx;
+        foreach(float dy; y[0 .. yLength])
+        {
+            float dySquared = dy * dy;
+            if(dxSquared + dySquared > shortestDistanceSquared)
+                break;
+            b.min.y = movableBox.min.y + dy;
+            b.max.y = movableBox.max.y + dy;
+            foreach(float dz; z[0 .. zLength])
+            {
+                float dzSquared = dz * dz;
+                if(dxSquared + dySquared + dzSquared > shortestDistanceSquared)
+                    break;
+                b.min.z = movableBox.min.z + dz;
+                b.max.z = movableBox.max.z + dz;
+                if(!collides(boxes, b))
+                {
+                    Vector delta = Vector(dx, dy, dz);
+                    float distanceSquared = absSquared(delta);
+                    if(distanceSquared < shortestDistanceSquared)
+                    {
+                        retval = delta;
+                        shortestDistanceSquared = distanceSquared;
+                    }
+                }
+            }
+        }
+    }
+    return retval;
 }
 
 public Collision combine(Collision a, Collision b)
