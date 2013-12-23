@@ -86,27 +86,27 @@ public abstract class EntityDescriptor
     }
 
     public abstract TransformedMesh getDrawMesh(ref EntityData data, RenderLayer rl);
-    protected abstract EntityData readInternal(GameLoadStream gls);
+    protected abstract EntityData readInternal(GameLoadStream gls, World world);
     public abstract void move(ref EntityData data, World world, in double deltaTime);
     public void postMove(ref EntityData data, World world)
     {
     }
-    protected abstract void writeInternal(EntityData data, GameStoreStream gss);
+    protected abstract void writeInternal(EntityData data, GameStoreStream gss, World world);
     public abstract Collision collideWithCylinder(ref EntityData data, Cylinder c, CollisionMask mask);
     public abstract Collision collideWithBox(ref EntityData data, Vector min, Vector max, CollisionMask mask);
     public abstract RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs);
     public abstract ulong getCollideMask();
 
-    public static void write(EntityData data, GameStoreStream gss)
+    public static void write(EntityData data, GameStoreStream gss, World world)
     {
         assert(data.good);
         gss.write(data.descriptor);
-        data.descriptor.writeInternal(data, gss);
+        data.descriptor.writeInternal(data, gss, world);
     }
 
-    public static EntityData read(GameLoadStream gls)
+    public static EntityData read(GameLoadStream gls, World world)
     {
-        return gls.readEntityDescriptor().readInternal(gls);
+        return gls.readEntityDescriptor().readInternal(gls, world);
     }
 
     private static EntityDescriptor[string] entities;

@@ -38,9 +38,9 @@ private final class PlayerDescriptor : EntityDescriptor
         return p.getDrawMesh(rl);
     }
 
-    protected override EntityData readInternal(GameLoadStream gls)
+    protected override EntityData readInternal(GameLoadStream gls, World world)
     {
-        Player p = Player.readInternal(gls);
+        Player p = Player.readInternal(gls, world);
         EntityData data = EntityData(Player.PLAYER, p.position, p.dimension);
         data.data = cast(void *)p;
         return data;
@@ -55,11 +55,11 @@ private final class PlayerDescriptor : EntityDescriptor
         data.dimension = p.dimension;
     }
 
-    protected override void writeInternal(EntityData data, GameStoreStream gss)
+    protected override void writeInternal(EntityData data, GameStoreStream gss, World world)
     {
         Player p = cast(Player)data.data;
         assert(p !is null);
-        p.writeInternal(gss);
+        p.writeInternal(gss, world);
     }
 
     public override ulong getCollideMask()
@@ -234,6 +234,7 @@ public final class Player
     private float viewTheta, viewPhi;
     private PlayerInput input;
     private World world;
+    private BlockStackArray!(9, 4) blocks;
     private this()
     {
 
@@ -274,7 +275,7 @@ public final class Player
         //FIXME (jacob#): finish
     }
 
-    package static Player readInternal(GameLoadStream gls)
+    package static Player readInternal(GameLoadStream gls, World world)
     {
         assert(false, "finish"); //FIXME (jacob#): finish
     }
@@ -342,7 +343,7 @@ public final class Player
         }
     }
 
-    package void writeInternal(GameStoreStream gss)
+    package void writeInternal(GameStoreStream gss, World world)
     {
         assert(false, "finish"); //FIXME (jacob#): finish
     }

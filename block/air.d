@@ -103,4 +103,9 @@ public final class Air : BlockDescriptor
     {
         return CollisionMask.COLLIDE_NONE;
     }
+
+    public override int maxStackSize()
+    {
+        return 0;
+    }
 }

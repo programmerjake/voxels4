@@ -108,6 +108,20 @@ public struct BlockData
             return ~0;
         return descriptor.getCollisionMask();
     }
+    public bool opEquals(BlockData rt)
+    {
+        if(descriptor !is rt.descriptor)
+            return false;
+        if(!good)
+            return true;
+        return descriptor.isEqual(this, rt);
+    }
+    public int maxStackSize()
+    {
+        if(good)
+            return descriptor.maxStackSize();
+        return 0;
+    }
 }
 
 public abstract class BlockDescriptor
@@ -135,6 +149,14 @@ public abstract class BlockDescriptor
     public abstract RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs);
     public abstract BoxList getCollisionBoxes(BlockPosition pos);
     public abstract ulong getCollisionMask();
+    public bool isEqual(BlockData l, BlockData r)
+    {
+        return l is r;
+    }
+    public int maxStackSize()
+    {
+        return 64;
+    }
 
     public static void write(BlockData data, GameStoreStream gss)
     {
@@ -176,5 +198,135 @@ public abstract class BlockDescriptor
         if(bd.good)
             return bd.isSideBlocked(f);
         return true;
+    }
+}
+
+struct BlockStack
+{
+    private BlockData block_ = BlockData(null);
+    private int count_ = 0;
+    public @property int count()
+    {
+        return count_;
+    }
+    public @property int spaceLeft()
+    {
+        return block.maxStackSize() - count;
+    }
+    public @property float fractionUsed()
+    {
+        int maxStackSize = block.maxStackSize();
+        if(maxStackSize <= 0)
+            return 0;
+        return cast(float)count / maxStackSize;
+    }
+    public @property BlockData block()
+    {
+        return block_;
+    }
+    public this(int c, BlockData b)
+    {
+        assert(c >= 0 && c <= b.maxStackSize());
+        assert(c > 0 || !b.good);
+        count_ = c;
+        block_ = b;
+    }
+    public this(BlockData b)
+    {
+        if(b.maxStackSize() > 0)
+            count_ = 1;
+        else
+        {
+            count_ = 0;
+            b = BlockData(null);
+        }
+        block_ = b;
+    }
+    public int transfer(ref BlockStack src, int c) /// Returns: the transferred count
+    {
+        if(c <= 0)
+            return 0;
+        if(block.good && block != src.block)
+            return 0;
+        if(c > src.count)
+            c = src.count;
+        if(block.good && c > spaceLeft)
+            c = spaceLeft;
+        if(c <= 0)
+            return 0;
+        if(!block.good)
+            block_ = src.block;
+        src.count_ -= c;
+        count_ += c;
+        return c;
+    }
+    public void write(GameStoreStream gss)
+    {
+        gss.write(cast(ubyte)count);
+        if(count > 0)
+            BlockDescriptor.write(block, gss);
+    }
+    public static BlockStack read(GameLoadStream gls)
+    {
+        int c = cast(ubyte)gls.readByte();
+        if(c > 0)
+        {
+            BlockData b = BlockDescriptor.read(gls);
+            if(c > b.maxStackSize())
+                throw new InvalidDataValueException("block stack count too large");
+            return BlockStack(c, b);
+        }
+        return BlockStack();
+    }
+}
+
+struct BlockStackArray(size_t w, size_t h)
+{
+    public static immutable size_t WIDTH = w, HEIGHT = h;
+    private BlockStack[WIDTH * HEIGHT] blocks;
+    public BlockStack opIndex(size_t x, size_t y)
+    {
+        assert(x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT);
+        return blocks[x + WIDTH * y];
+    }
+    public void opIndexAssign(BlockStack bs, size_t x, size_t y)
+    {
+        assert(x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT);
+        blocks[x + WIDTH * y] = bs;
+    }
+
+    public int add(ref BlockStack src, int c) /// Returns: the transferred count
+    {
+        int retval = 0;
+        foreach(ref BlockStack bs; blocks)
+        {
+            retval += bs.transfer(src, c - retval);
+        }
+        return retval;
+    }
+
+    public int remove(ref BlockStack dest, int c) /// Returns: the transferred count
+    {
+        int retval = 0;
+        foreach(ref BlockStack bs; blocks)
+        {
+            retval += dest.transfer(bs, c - retval);
+        }
+        return retval;
+    }
+
+    public void read(GameLoadStream gls)
+    {
+        foreach(ref BlockStack bs; blocks)
+        {
+            bs = BlockStack.read(gls);
+        }
+    }
+    public void write(GameStoreStream gss)
+    {
+        foreach(BlockStack bs; blocks)
+        {
+            bs.write(gss);
+        }
     }
 }

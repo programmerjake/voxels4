@@ -97,7 +97,7 @@ public final class BlockEntity : EntityDescriptor
         return TransformedMesh(data_data.block.getEntityDrawMesh(rl), getDrawTransform(data, data_data));
     }
 
-    protected override EntityData readInternal(GameLoadStream gls)
+    protected override EntityData readInternal(GameLoadStream gls, World world)
     {
         Vector position = gls.readFiniteVector();
         Dimension dimension = gls.readDimension();
@@ -208,7 +208,7 @@ public final class BlockEntity : EntityDescriptor
         //FIXME(jacob#): change to actual implementation
     }
 
-    protected override void writeInternal(EntityData data, GameStoreStream gss)
+    protected override void writeInternal(EntityData data, GameStoreStream gss, World world)
     {
         Data * data_data = cast(Data *)data.data;
         assert(data_data !is null);
