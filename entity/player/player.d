@@ -312,13 +312,13 @@ public final class Player
             deltaPosition += deltaTime * moveVelocity * forward;
         else if(input.motionBack)
             deltaPosition -= deltaTime * moveVelocity * forward;
-        int count = iceil(10 * abs(deltaPosition) + 1);
+        int count = iceil(10.0 * abs(deltaPosition) + 1);
         try
         {
             for(int i = 0; i < count; i++)
             {
                 position += deltaPosition / count;
-                Vector delta = world.findBestBoxPositionWithBlocksOnly(CollisionBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), dimension), CollisionMask(~BlockEntity.BLOCK_MASK, data));
+                Vector delta = world.findBestBoxPositionWithBlocksOnly(CollisionBox(position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), dimension), CollisionMask(~BlockEntity.BLOCK_MASK, data));
                 if(delta != Vector.ZERO)
                 {
                     position += delta;

@@ -1746,50 +1746,78 @@ public final class World
 
     package int forEachBlockInRange(int delegate(ref BlockPosition pos) dg, BlockRange range)
     {
-        int minCX = range.minx & Chunk.FLOOR_SIZE_MASK;
-        int minCZ = range.minx & Chunk.FLOOR_SIZE_MASK;
-        int maxCX = (range.maxx + Chunk.XZ_SIZE - 1) & Chunk.FLOOR_SIZE_MASK;
-        int maxCZ = (range.maxz + Chunk.XZ_SIZE - 1) & Chunk.FLOOR_SIZE_MASK;
-        int miny = range.miny;
-        if(miny < 0)
-            miny = 0;
-        int maxy = range.maxy;
-        if(maxy >= Chunk.Y_SIZE - 1)
-            maxy = Chunk.Y_SIZE - 1;
-        for(int cx = minCX; cx <= maxCX; cx += Chunk.XZ_SIZE)
+        static if(false)
         {
-            for(int cz = minCZ; cz <= maxCZ; cz += Chunk.XZ_SIZE)
+            int minCX = range.minx & Chunk.FLOOR_SIZE_MASK;
+            int minCZ = range.minx & Chunk.FLOOR_SIZE_MASK;
+            int maxCX = (range.maxx + Chunk.XZ_SIZE) & Chunk.FLOOR_SIZE_MASK;
+            int maxCZ = (range.maxz + Chunk.XZ_SIZE) & Chunk.FLOOR_SIZE_MASK;
+            int miny = range.miny;
+            if(miny < 0)
+                miny = 0;
+            int maxy = range.maxy + 1;
+            if(maxy > Chunk.Y_SIZE)
+                maxy = Chunk.Y_SIZE;
+            for(int cx = minCX; cx < maxCX; cx += Chunk.XZ_SIZE)
             {
-                int minx = range.minx;
-                int maxx = range.maxx;
-                int minz = range.minz;
-                int maxz = range.maxz;
-                if(minx < cx)
-                    minx = cx;
-                if(maxx > cx + Chunk.XZ_SIZE - 1)
-                    maxx = cx + Chunk.XZ_SIZE - 1;
-                if(minz < cz)
-                    minz = cz;
-                if(maxz > cz + Chunk.XZ_SIZE - 1)
-                    maxz = cz + Chunk.XZ_SIZE - 1;
-                BlockPosition pos = getBlockPosition(cx, 0, cz, range.dimension);
-                for(int x = minx; x <= maxx; x++)
+                for(int cz = minCZ; cz < maxCZ; cz += Chunk.XZ_SIZE)
                 {
-                    for(int y = miny; y <= maxy; y++)
+                    int minx = range.minx;
+                    int maxx = range.maxx + 1;
+                    int minz = range.minz;
+                    int maxz = range.maxz + 1;
+                    if(minx < cx)
+                        minx = cx;
+                    if(maxx > cx + Chunk.XZ_SIZE)
+                        maxx = cx + Chunk.XZ_SIZE;
+                    if(minz < cz)
+                        minz = cz;
+                    if(maxz > cz + Chunk.XZ_SIZE)
+                        maxz = cz + Chunk.XZ_SIZE;
+                    BlockPosition pos = getBlockPosition(cx, 0, cz, range.dimension);
+                    for(int x = minx; x < maxx; x++)
                     {
-                        for(int z = minz; z <= maxz; z++)
+                        for(int y = miny; y < maxy; y++)
                         {
-                            BlockPosition curPos = pos;
-                            curPos.moveTo(x, y, z);
-                            int retval = dg(curPos);
-                            if(retval != 0)
-                                return retval;
+                            for(int z = minz; z < maxz; z++)
+                            {
+                                BlockPosition curPos = pos;
+                                curPos.moveTo(x, y, z);
+                                int retval = dg(curPos);
+                                if(retval != 0)
+                                    return retval;
+                            }
                         }
                     }
                 }
             }
+            return 0;
         }
-        return 0;
+        else
+        {
+            if(range.miny < 0)
+                range.miny = 0;
+            if(range.maxy > Chunk.Y_SIZE - 1)
+                range.maxy = Chunk.Y_SIZE - 1;
+            BlockPosition pos = getBlockPosition(range.minx, range.miny, range.minz, range.dimension);
+            for(int x = range.minx; x <= range.maxx; x++)
+            {
+                pos.moveTo(x, range.miny, range.minz);
+                BlockPosition pos2 = pos;
+                for(int z = range.minz; z <= range.maxz; z++)
+                {
+                    for(int y = range.miny; y <= range.maxy; y++)
+                    {
+                        pos2.moveTo(x, y, z);
+                        BlockPosition pos3 = pos2;
+                        int retval = dg(pos3);
+                        if(retval != 0)
+                            return retval;
+                    }
+                }
+            }
+            return 0;
+        }
     }
 
     public Collision collideWithCylinderBlocksOnly(Dimension dimension, Cylinder c, CollisionMask mask)
