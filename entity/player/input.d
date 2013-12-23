@@ -122,7 +122,7 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
     }
 
     private double lastSpaceDownTime = -1;
-    private static immutable double spaceDoubleTapTime = 0.4;
+    private static immutable double spaceDoubleTapTime = 0.25;
 
     private void addEvent(PlayerInputEvent event)
     {
@@ -228,6 +228,7 @@ public final class DefaultPlayerInput : PlayerInput, EventHandler
         {
             if(!spaceDown)
             {
+                addEvent(new PlayerInputEvent.Jump());
                 if(lastSpaceDownTime < 0)
                 {
                     lastSpaceDownTime = Display.timer;

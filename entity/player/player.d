@@ -50,7 +50,7 @@ private final class PlayerDescriptor : EntityDescriptor
     {
         Player p = cast(Player)data.data;
         assert(p !is null);
-        p.move(world, deltaTime, &data);
+        p.move(deltaTime, &data);
         data.position = p.position;
         data.dimension = p.dimension;
     }
@@ -233,6 +233,7 @@ public final class Player
     package Dimension dimension;
     private float viewTheta, viewPhi;
     private PlayerInput input;
+    private World world;
     private this()
     {
 
@@ -245,7 +246,7 @@ public final class Player
         return retval;
     }
 
-    public static Player make(string name, PlayerInput input, Vector position, Dimension dimension)
+    public static Player make(string name, PlayerInput input, World world, Vector position, Dimension dimension)
     {
         Player retval = new Player();
         retval.name = name;
@@ -255,6 +256,7 @@ public final class Player
         retval.input = input;
         retval.viewTheta = 0;
         retval.viewPhi = 0;
+        retval.world = world;
         return retval;
     }
 
@@ -265,7 +267,7 @@ public final class Player
         return TransformedMesh(); //FIXME (jacob#): finish
     }
 
-    public void drawAll(World world)
+    public void drawAll()
     {
         world.draw(position, viewTheta, viewPhi, dimension);
         input.drawOverlay();
@@ -277,7 +279,12 @@ public final class Player
         assert(false, "finish"); //FIXME (jacob#): finish
     }
 
-    public void move(World world, in double deltaTime, EntityData * data)
+    private CollisionMask getCollideCollisionMask(EntityData * data = null)
+    {
+        return CollisionMask(~BlockEntity.BLOCK_MASK, data);
+    }
+
+    public void move(in double deltaTime, EntityData * data)
     {
         //FIXME (jacob#): finish
         input.move();
@@ -318,11 +325,14 @@ public final class Player
             for(int i = 0; i < count; i++)
             {
                 position += deltaPosition / count;
-                Vector delta = world.findBestBoxPositionWithBlocksOnly(CollisionBox(position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), dimension), CollisionMask(~BlockEntity.BLOCK_MASK, data));
+                Vector delta = world.findBestBoxPositionWithBlocksOnly(CollisionBox(position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), dimension), getCollideCollisionMask(data));
                 if(delta != Vector.ZERO)
                 {
                     position += delta;
-                    velocity = Vector.ZERO;
+                    if(velocity.y > 0 || !onGround())
+                        velocity = Vector(0, velocity.y, 0);
+                    else
+                        velocity = Vector.ZERO;
                 }
             }
         }
@@ -379,8 +389,21 @@ public final class Player
         //FIXME(jacob#): finish
     }
 
+    private void handleJump()
+    {
+        if(!onGround())
+            return;
+        velocity = Vector.Y * 5;
+    }
+
     package void handleJump(PlayerInputEvent.Jump event)
     {
-        //FIXME(jacob#): finish
+        handleJump();
+    }
+
+    private bool onGround()
+    {
+        const float onGroundDistance = 0.05;
+        return world.collidesWithBoxBlocksOnly(CollisionBox(position + Vector(-0.5 * playerWidth, -playerEyeHeight - onGroundDistance, -0.5 * playerWidth), position + Vector(0.5 * playerWidth, -playerEyeHeight, 0.5 * playerWidth), dimension), getCollideCollisionMask());
     }
 }

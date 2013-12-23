@@ -65,7 +65,7 @@ int main(string[] args)
             w.advanceTime(0);
         }
     }
-    Player player = Player.make("", playerInput, Vector(0.5, 65.5, 0.5), Dimension.Overworld);
+    Player player = Player.make("", playerInput, w, Vector(0.5, 65.5, 0.5), Dimension.Overworld);
     playerInput.setPlayer(player);
     w.addEntity(player.data);
     w.advanceTime(0);
@@ -79,7 +79,7 @@ int main(string[] args)
     while(!done)
     {
 		Display.initFrame();
-		player.drawAll(w);
+		player.drawAll();
 		Display.initOverlay();
 		textMesh.clear();
 		const float textDistance = 20.0;

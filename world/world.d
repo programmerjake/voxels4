@@ -1902,18 +1902,30 @@ public final class World
         }
     }
 
-    public Vector findBestBoxPositionWithBlocksOnly(CollisionBox movableBox, CollisionMask mask)
+    private BoxList getCollisionBoxes(BlockRange r, CollisionMask mask)
     {
-        static immutable float searchDistance = 0.5;
-        EntityRange er = EntityRange(movableBox.min.x - 1 - searchDistance, movableBox.min.y - 1 - searchDistance, movableBox.min.z - 1 - searchDistance, movableBox.max.x + 1 + searchDistance, movableBox.max.y + 1 + searchDistance, movableBox.max.z + 1 + searchDistance, movableBox.dimension);
-        BlockRange r = BlockRange(er);
-        BoxList boxes = [];
+        static CollisionBox[] boxes;
+        int boxesLength = 0;
         foreach(BlockPosition pos; r.iterate(this))
         {
             BlockData b = pos.get();
             if(b.getCollisionMask() & mask.mask)
-                boxes ~= b.getCollisionBoxes(pos);
+            {
+                BoxList newBoxes = b.getCollisionBoxes(pos);
+                if(boxes.length < boxesLength + newBoxes.length)
+                    boxes.length = boxesLength + newBoxes.length * 2;
+                boxes[boxesLength .. boxesLength + newBoxes.length] = newBoxes[];
+                boxesLength += newBoxes.length;
+            }
         }
+        return boxes[0 .. boxesLength];
+    }
+
+    public Vector findBestBoxPositionWithBlocksOnly(CollisionBox movableBox, CollisionMask mask, in float searchDistance = 0.5)
+    {
+        EntityRange er = EntityRange(movableBox.min.x - 1 - searchDistance, movableBox.min.y - 1 - searchDistance, movableBox.min.z - 1 - searchDistance, movableBox.max.x + 1 + searchDistance, movableBox.max.y + 1 + searchDistance, movableBox.max.z + 1 + searchDistance, movableBox.dimension);
+        BlockRange r = BlockRange(er);
+        BoxList boxes = getCollisionBoxes(r, mask);
         Vector retval = .findBestBoxPosition(movableBox, boxes);
         if(retval.x < -searchDistance || retval.x > searchDistance)
             throw new NoSpaceToPutException();
@@ -1922,5 +1934,13 @@ public final class World
         if(retval.z < -searchDistance || retval.z > searchDistance)
             throw new NoSpaceToPutException();
         return retval;
+    }
+
+    public bool collidesWithBoxBlocksOnly(CollisionBox box, CollisionMask mask)
+    {
+        EntityRange er = EntityRange(box.min.x - eps, box.min.y - eps, box.min.z - eps, box.max.x + eps, box.max.y + eps, box.max.z + eps, box.dimension);
+        BlockRange r = BlockRange(er);
+        BoxList boxes = getCollisionBoxes(r, mask);
+        return collides(boxes, box);
     }
 }
