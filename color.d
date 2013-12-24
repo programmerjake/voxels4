@@ -131,6 +131,16 @@ public struct Color
 		float foregroundTransparency = 1 - foregroundOpacity;
 		return RGBAf(rf * foregroundOpacity + bkgnd.rf * foregroundTransparency, gf * foregroundOpacity + bkgnd.gf * foregroundTransparency, bf * foregroundOpacity + bkgnd.bf * foregroundTransparency, 1 - (1 - bkgnd.af) * foregroundTransparency);
 	}
+
+	public Color opBinary(string op)(Color rt) const if(op == "*")
+	{
+	    return RGBAf(rf * rt.rf, gf * rt.gf, bf * rt.bf, af * rt.af);
+	}
+
+	public Color opBinary(string op)(Color rt) const if(op == "+")
+	{
+	    return RGBAi(cast(int)r + rt.r, cast(int)g + rt.g, cast(int)b + rt.b, cast(int)a + rt.a);
+	}
 }
 
 public Color scale(Color c, float s)

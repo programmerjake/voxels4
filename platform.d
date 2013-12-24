@@ -1017,6 +1017,7 @@ public struct Display
         glEnable(GL_ALPHA_TEST);
         glEnable(GL_CULL_FACE);
         glEnable(GL_BLEND);
+        glDepthFunc(GL_LEQUAL);
         glCullFace(GL_BACK);
         glFrontFace(GL_CCW);
         glAlphaFunc(GL_GREATER, 0.05f);
@@ -1055,5 +1056,10 @@ public struct Display
             SDL_ShowCursor(g ? 0 : 1);
             SDL_WM_GrabInput(g ? SDL_GRAB_ON : SDL_GRAB_OFF);
 	    }
+	}
+
+	public static Vector transformMouseTo3D(float x, float y, float depth = 1.0f)
+	{
+	    return Vector(depth * xScale * (2 * x / width - 1), depth * yScale * (1 - 2 * y / height), -depth);
 	}
 }

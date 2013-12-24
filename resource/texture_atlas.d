@@ -335,7 +335,8 @@ public final class TextureAtlas
     WoodPressurePlateFace,
     WoodPressurePlateSide,
     WoodShovel,
-    Wool;
+    Wool,
+    BlockHighlight;
 
     static this()
     {
@@ -618,5 +619,6 @@ public final class TextureAtlas
 		WoodPressurePlateSide = new immutable(TextureAtlas)(272, 82, 16, 2);
 		WoodShovel = new immutable(TextureAtlas)(272, 112, 16, 16);
 		Wool = new immutable(TextureAtlas)(288, 112, 16, 16);
+		BlockHighlight = new immutable(TextureAtlas)(288, 224, 32, 32);
 	}
 }

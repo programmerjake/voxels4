@@ -62,16 +62,33 @@ public struct TransformedMesh
 {
 	public Mesh mesh = null;
 	public Matrix transform = Matrix.IDENTITY;
+	public Color scaleColor = Color.WHITE;
 	public this(Mesh mesh, Matrix transform = Matrix.IDENTITY)
 	{
 		this.mesh = mesh;
 		this.transform = transform;
+		this.scaleColor = Color.WHITE;
 	}
 
 	public this(TransformedMesh mesh, Matrix transform)
 	{
 		this.mesh = mesh.mesh;
 		this.transform = mesh.transform.concat(transform);
+		this.scaleColor = mesh.scaleColor;
+	}
+
+	public this(Mesh mesh, Color scaleColor)
+	{
+	    this.mesh = mesh;
+	    this.transform = Matrix.IDENTITY;
+	    this.scaleColor = scaleColor;
+	}
+
+	public this(TransformedMesh mesh, Color scaleColor)
+	{
+	    this.mesh = mesh.mesh;
+	    this.transform = mesh.transform;
+	    this.scaleColor = scaleColor * mesh.scaleColor;
 	}
 }
 
@@ -245,14 +262,26 @@ public final class Mesh
 			colors = dupFloatArray(rt.mesh.colors);
 			trianglesAllocated = rt.mesh.trianglesAllocated;
 			trianglesUsed = rt.mesh.trianglesUsed;
-			immutable size_t limit = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
-			for(size_t i = 0; i < limit; i += 3)
+			immutable size_t limitv = VERTICES_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+			immutable size_t limitc = COLORS_ELEMENTS_PER_TRIANGLE * trianglesUsed;
+			for(size_t i = 0; i < limitv; i += 3)
 			{
 				Vector v = rt.transform.apply(Vector(vertices[i], vertices[i + 1], vertices[i + 2]));
 				vertices[i] = v.x;
 				vertices[i + 1] = v.y;
 				vertices[i + 2] = v.z;
 			}
+			float cr = rt.scaleColor.rf;
+			float cg = rt.scaleColor.gf;
+			float cb = rt.scaleColor.bf;
+			float ca = rt.scaleColor.af;
+			for(size_t i = 0; i < limitc; i += 4)
+            {
+                colors[i + 0] *= cr;
+                colors[i + 1] *= cg;
+                colors[i + 2] *= cb;
+                colors[i + 3] *= ca;
+            }
 		}
 	}
 
@@ -310,32 +339,6 @@ public final class Mesh
         return this;
 	}
 
-	public Mesh add(TransformedMesh mesh)
-	{
-		if(sealed)
-			throw new SealedException();
-        assert(mesh.mesh !is this);
-		if(mesh.mesh is null || mesh.mesh.trianglesUsed <= 0)
-			return this;
-		if(this.texture is null)
-			this.textureInternal = mesh.mesh.texture;
-		else if(this.texture !is mesh.mesh.texture)
-            throw new ImageNotSameException();
-        checkForSpace(mesh.mesh.trianglesUsed);
-        immutable size_t finalSize = trianglesUsed + mesh.mesh.trianglesUsed;
-        for(size_t i = trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * VERTICES_ELEMENTS_PER_TRIANGLE; i += 3, j += 3)
-        {
-			Vector v = mesh.transform.apply(Vector(mesh.mesh.vertices[j], mesh.mesh.vertices[j + 1], mesh.mesh.vertices[j + 2]));
-			vertices[i] = v.x;
-			vertices[i + 1] = v.y;
-			vertices[i + 2] = v.z;
-		}
-		textureCoords[trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE .. finalSize * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE] = mesh.mesh.textureCoords[0 .. mesh.mesh.trianglesUsed * TEXTURE_COORDS_ELEMENTS_PER_TRIANGLE];
-		colors[trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE .. finalSize * COLORS_ELEMENTS_PER_TRIANGLE] = mesh.mesh.colors[0 .. mesh.mesh.trianglesUsed * COLORS_ELEMENTS_PER_TRIANGLE];
-		trianglesUsed = finalSize;
-		return this;
-	}
-
 	public Mesh add(Mesh mesh)
 	{
 		if(sealed)
@@ -357,7 +360,7 @@ public final class Mesh
 	}
 
 
-	public Mesh add(TransformedMesh mesh, Color factor)
+	public Mesh add(TransformedMesh mesh, Color factor = Color.WHITE)
 	{
 		if(sealed)
 			throw new SealedException();
@@ -368,6 +371,7 @@ public final class Mesh
 			this.textureInternal = mesh.mesh.texture;
 		else if(this.texture !is mesh.mesh.texture)
             throw new ImageNotSameException();
+        factor = factor * mesh.scaleColor;
         checkForSpace(mesh.mesh.trianglesUsed);
         immutable size_t finalSize = trianglesUsed + mesh.mesh.trianglesUsed;
         for(size_t i = trianglesUsed * VERTICES_ELEMENTS_PER_TRIANGLE, j = 0; i < finalSize * VERTICES_ELEMENTS_PER_TRIANGLE; i += 3, j += 3)

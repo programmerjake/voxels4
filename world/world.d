@@ -30,6 +30,7 @@ import std.conv;
 import entity.entity;
 import std.stdio;
 import physics.physics;
+import entity.player.player;
 
 public enum Dimension
 {
@@ -1439,7 +1440,7 @@ public final class World
 
     public uint viewDistance = 16;
 
-    public void draw(Vector viewPoint, float theta, float phi, Dimension dimension)
+    public void draw(Vector viewPoint, float theta, float phi, Dimension dimension, Mesh additionalMesh)
     {
         glDepthMask(GL_TRUE);
         glClearColor(0.5, 0.5, 1, 1);
@@ -1463,6 +1464,8 @@ public final class World
                 }
             }
         }
+        glDepthMask(GL_TRUE);
+        Renderer.render(additionalMesh);
         glMatrixMode(GL_MODELVIEW);
         glLoadIdentity();
         //TODO (jacob#): finish
@@ -1942,5 +1945,11 @@ public final class World
         BlockRange r = BlockRange(er);
         BoxList boxes = getCollisionBoxes(r, mask);
         return collides(boxes, box);
+    }
+
+    private LinkedList!Player players_ = new LinkedList!Player();
+    public @property LinkedList!Player players()
+    {
+        return players_;
     }
 }

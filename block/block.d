@@ -24,6 +24,7 @@ public import persistance.game_load_stream;
 public import persistance.game_store_stream;
 import block.air;
 public import physics.physics;
+import platform;
 
 public struct BlockData
 {
@@ -48,6 +49,11 @@ public struct BlockData
     {
         assert(good);
         return descriptor.getEntityDrawMesh(this, rl);
+    }
+    public TransformedMesh getItemDrawMesh()
+    {
+        assert(good);
+        return descriptor.getItemDrawMesh(this);
     }
     public bool graphicsChanges(BlockPosition pos)
     {
@@ -135,6 +141,7 @@ public abstract class BlockDescriptor
 
     public abstract TransformedMesh getDrawMesh(BlockPosition pos, RenderLayer rl);
     public abstract TransformedMesh getEntityDrawMesh(BlockData data, RenderLayer rl);
+    public abstract TransformedMesh getItemDrawMesh(BlockData data);
     public abstract bool graphicsChanges(BlockPosition pos);
     public abstract bool isSideBlocked(BlockData data, BlockFace face);
     public abstract bool isOpaque(BlockData data);
@@ -198,6 +205,16 @@ public abstract class BlockDescriptor
         if(bd.good)
             return bd.isSideBlocked(f);
         return true;
+    }
+    public static TransformedMesh makeBlockItemMesh(TransformedMesh mesh)
+    {
+        immutable float sqrt_3 = sqrt(3.0);
+        immutable Matrix mat = Matrix.translate(-0.5, -0.5, -0.5)
+                                     .concat(Matrix.rotateY(-PI / 4))
+                                     .concat(Matrix.rotateX(PI / 6))
+                                     .concat(Matrix.scale(0.8 / sqrt_3, 0.8 / sqrt_3, 0.1 / sqrt_3))
+                                     .concat(Matrix.translate(0.5, 0.5, 0.1));
+        return TransformedMesh(mesh, mat);
     }
 }
 

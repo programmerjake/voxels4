@@ -65,6 +65,11 @@ public final class BlockAnimTest : BlockDescriptor
         return TransformedMesh(theMesh, Matrix.translate(0.5, 0.5, 0.5));
     }
 
+    public override TransformedMesh getItemDrawMesh(BlockData data)
+    {
+        return TransformedMesh(theMesh, Matrix.translate(0.5, 0.5, 0));
+    }
+
     protected override BlockData readInternal(GameLoadStream gls)
     {
         return BlockData(BLOCK_ANIM_TEST);

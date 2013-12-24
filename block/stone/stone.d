@@ -81,6 +81,11 @@ public abstract class StoneType : BlockDescriptor
         return TransformedMesh(theMesh[1][1][1][1][1][1], Matrix.translate(-0.5, 0, -0.5).concat(Matrix.scale(0.25)));
     }
 
+    public override TransformedMesh getItemDrawMesh(BlockData data)
+    {
+        return makeBlockItemMesh(TransformedMesh(theMesh[1][1][1][1][1][1]));
+    }
+
     public override bool graphicsChanges(BlockPosition pos)
     {
         return false;

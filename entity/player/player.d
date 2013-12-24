@@ -19,6 +19,7 @@ module entity.player.player;
 public import entity.entity;
 import util;
 import entity.block;
+import block.block;
 
 private immutable float playerHeight = 1.8;
 private immutable float playerEyeHeight = 1.7;
@@ -234,7 +235,7 @@ public final class Player
     private float viewTheta, viewPhi;
     private PlayerInput input;
     private World world;
-    private BlockStackArray!(9, 4) blocks;
+    public BlockStackArray!(9, 4) blocks;
     private this()
     {
 
@@ -266,6 +267,17 @@ public final class Player
     public TransformedMesh getDrawMesh(RenderLayer rl)
     {
         return TransformedMesh(); //FIXME (jacob#): finish
+    }
+
+    private static immutable Mesh highlightBlockMesh;
+    static this()
+    {
+        highlightBlockMesh = Generate.unitBox(TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td).seal();
+    }
+
+    public void highlightSelectedBlock()
+    {
+
     }
 
     public void drawAll()
@@ -346,13 +358,6 @@ public final class Player
     package void writeInternal(GameStoreStream gss, World world)
     {
         assert(false, "finish"); //FIXME (jacob#): finish
-    }
-
-    private static LinkedList!Player players;
-
-    static this()
-    {
-        players = new LinkedList!Player();
     }
 
     package void handleUseButtonPress(PlayerInputEvent.UseButtonPress event)
