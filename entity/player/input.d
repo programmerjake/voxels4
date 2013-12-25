@@ -24,7 +24,7 @@ import platform;
 public interface PlayerInputMode
 {
     public void draw(Player player);
-    public void init(delegate void(PlayerInputEvent event) addEvent);
+    public void init(void delegate(PlayerInputEvent event) addEvent);
     public void onClick(Player player, Vector pos, bool isLeft, bool isMiddle, bool isRight);
     public @property bool done();
     public void finish(Player player);

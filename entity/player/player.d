@@ -20,6 +20,8 @@ public import entity.entity;
 import util;
 import entity.block;
 import block.block;
+import render.generate;
+import resource.texture_atlas;
 
 private immutable float playerHeight = 1.8;
 private immutable float playerEyeHeight = 1.7;
@@ -85,6 +87,11 @@ private final class PlayerDescriptor : EntityDescriptor
     public override RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs)
     {
         return collideWithAABB(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new EntityRayCollision(position, dimension, t, data);});
+    }
+
+    public override CollisionBox getBoundingBox(EntityData data)
+    {
+        return CollisionBox(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), data.dimension);
     }
 }
 
@@ -269,22 +276,63 @@ public final class Player
         return TransformedMesh(); //FIXME (jacob#): finish
     }
 
-    private static immutable Mesh highlightBlockMesh;
+    private static Mesh highlightBlockMesh;
     static this()
     {
         highlightBlockMesh = Generate.unitBox(TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td).seal();
     }
 
-    public void highlightSelectedBlock()
-    {
+    private Mesh temp = null;
 
+    private @property float reachDistance()
+    {
+        if(input.creativeMode)
+            return 15;
+        return 3.975;
     }
 
     public void drawAll()
     {
-        world.draw(position, viewTheta, viewPhi, dimension);
+        if(temp is null)
+            temp = new Mesh();
+        temp.clear();
+        RayCollision theRayCollision = getRayCollision(null);
+        if(theRayCollision !is null)
+        {
+            final switch(theRayCollision.type)
+            {
+            case RayCollision.Type.Uninitialized:
+                break;
+            case RayCollision.Type.Block:
+            {
+                BlockRayCollision rc = cast(BlockRayCollision)theRayCollision;
+                assert(rc !is null);
+                BlockPosition b = rc.block;
+                assert(b.get().good);
+                CollisionBox bb = b.get().getBoundingBox(b);
+                temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
+                break;
+            }
+            case RayCollision.Type.Entity:
+            {
+                EntityRayCollision rc = cast(EntityRayCollision)theRayCollision;
+                assert(rc !is null);
+                EntityData * e = rc.entity;
+                assert(e !is null && e.good);
+                CollisionBox bb = e.getBoundingBox();
+                temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
+                break;
+            }
+            }
+        }
+        world.draw(position, viewTheta, viewPhi, dimension, temp);
         input.drawOverlay();
         //FIXME (jacob#): finish
+    }
+
+    private RayCollision getRayCollision(RayCollisionArgs cArgs)
+    {
+        return world.collide(Ray(position, dimension, Vector.sphericalCoordinate(1.0, viewTheta, viewPhi)), reachDistance, cArgs);
     }
 
     package static Player readInternal(GameLoadStream gls, World world)

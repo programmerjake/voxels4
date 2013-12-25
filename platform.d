@@ -30,6 +30,7 @@ import core.time;
 import core.thread;
 import std.conv;
 import matrix;
+import vector;
 
 public immutable(string) ResourcePrefix;
 
@@ -1060,6 +1061,6 @@ public struct Display
 
 	public static Vector transformMouseTo3D(float x, float y, float depth = 1.0f)
 	{
-	    return Vector(depth * xScale * (2 * x / width - 1), depth * yScale * (1 - 2 * y / height), -depth);
+	    return Vector(depth * scaleX * (2 * x / width - 1), depth * scaleY * (1 - 2 * y / height), -depth);
 	}
 }

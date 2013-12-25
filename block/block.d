@@ -108,6 +108,12 @@ public struct BlockData
             return [CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension)];
         return descriptor.getCollisionBoxes(pos);
     }
+    public CollisionBox getBoundingBox(BlockPosition pos)
+    {
+        if(!good)
+            return CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension);
+        return descriptor.getBoundingBox(pos);
+    }
     public ulong getCollisionMask()
     {
         if(!good)
@@ -163,6 +169,29 @@ public abstract class BlockDescriptor
     public int maxStackSize()
     {
         return 64;
+    }
+    public CollisionBox getBoundingBox(BlockPosition pos)
+    {
+        BoxList boxes = getCollisionBoxes(pos);
+        if(boxes.length == 0)
+            return CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension);
+        CollisionBox retval = boxes[0];
+        foreach(CollisionBox b; boxes[1 .. boxes.length])
+        {
+            if(retval.min.x > b.min.x)
+                retval.min.x = b.min.x;
+            if(retval.min.y > b.min.y)
+                retval.min.y = b.min.y;
+            if(retval.min.z > b.min.z)
+                retval.min.z = b.min.z;
+            if(retval.max.x < b.max.x)
+                retval.max.x = b.max.x;
+            if(retval.max.y < b.max.y)
+                retval.max.y = b.max.y;
+            if(retval.max.z < b.max.z)
+                retval.max.z = b.max.z;
+        }
+        return retval;
     }
 
     public static void write(BlockData data, GameStoreStream gss)

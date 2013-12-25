@@ -21,6 +21,7 @@ public import matrix;
 public import block.block;
 import render.text;
 import platform;
+import std.string;
 
 public struct Overlay
 {
@@ -47,7 +48,6 @@ public struct Overlay
         float scale = xSize * screenDepth / screenWidth;
         return Matrix.scale(scale * 2).concat(Matrix.translate(-scale, -scale, -screenDepth));
     }
-    public static immutable Matrix transformFromScreenSpace640x480 = transformFromScreenSpace(640, 480);
     public static void drawBlockStack(Mesh dest, Matrix transform, BlockStack bs, int x, int y, float zDistance)
     {
         if(bs.count <= 0)
@@ -57,7 +57,7 @@ public struct Overlay
         {
             string str = format("%2s", bs.count);
             float width = Text.width(str);
-            Text.render(dest, Matrix.scale(16 / width).concat(Matrix.translate(x, y, 0)).concat(transform), Color.WHITE);
+            Text.render(dest, Matrix.scale(16 / width).concat(Matrix.translate(x, y, 0)).concat(transform), Color.WHITE, str);
         }
         dest.add(TransformedMesh(bs.block.getItemDrawMesh(), Matrix.scale(16).concat(transform)));
     }

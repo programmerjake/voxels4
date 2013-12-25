@@ -794,7 +794,9 @@ private final class Chunk
     {
         if(y < 0 || y >= Y_SIZE)
             return otherEntities;
-        return entities[((x - position.x) >> LOG2_ENTITY_BLOCK_SIZE) + (y >> LOG2_ENTITY_BLOCK_SIZE) * (XZ_SIZE >> LOG2_ENTITY_BLOCK_SIZE) + ((z - position.z) >> LOG2_ENTITY_BLOCK_SIZE) * (XZ_SIZE * Y_SIZE >> 2 * LOG2_ENTITY_BLOCK_SIZE)];
+        assert(x >= position.x && x < position.x + XZ_SIZE);
+        assert(z >= position.z && z < position.z + XZ_SIZE);
+        return entities[((x - position.x) >> LOG2_ENTITY_BLOCK_SIZE) + (y >> LOG2_ENTITY_BLOCK_SIZE) * (XZ_SIZE >> LOG2_ENTITY_BLOCK_SIZE) + ((z - position.z) >> LOG2_ENTITY_BLOCK_SIZE) * ((XZ_SIZE * Y_SIZE >> LOG2_ENTITY_BLOCK_SIZE) >> LOG2_ENTITY_BLOCK_SIZE)];
     }
 
     public LinkedHashMap!EntityNode getEntityList(Vector p)

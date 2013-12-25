@@ -263,4 +263,9 @@ public final class BlockEntity : EntityDescriptor
             return null;
         }
     }
+
+    public override CollisionBox getBoundingBox(EntityData data)
+    {
+        return CollisionBox(data.position - 0.5 * blockSize * Vector.XYZ, data.position + 0.5 * blockSize * Vector.XYZ, data.dimension);
+    }
 }

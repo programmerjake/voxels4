@@ -74,6 +74,11 @@ public struct EntityData
             return 0;
         return descriptor.getCollideMask();
     }
+    public CollisionBox getBoundingBox()
+    {
+        assert(good);
+        return descriptor.getBoundingBox(this);
+    }
 }
 
 public abstract class EntityDescriptor
@@ -96,6 +101,7 @@ public abstract class EntityDescriptor
     public abstract Collision collideWithBox(ref EntityData data, Vector min, Vector max, CollisionMask mask);
     public abstract RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs);
     public abstract ulong getCollideMask();
+    public abstract CollisionBox getBoundingBox(EntityData data);
 
     public static void write(EntityData data, GameStoreStream gss, World world)
     {
