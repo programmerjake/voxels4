@@ -72,7 +72,7 @@ int main(string[] args)
     Display.title = "Voxels " ~ GameVersion.VERSION;
     w.viewDistance = 48;
     playerInput.creativeMode = true;
-    playerInput.initMode();
+    //playerInput.initMode(); //FIXME(jacob#): uncomment
     bool doMove = false;
     string title = "";
     Mesh textMesh = new Mesh();
@@ -93,9 +93,9 @@ int main(string[] args)
             doMove = true;
 		static float i = 0;
 		i += 1.0;
-		if(i >= Display.averageFPS * 0.5)
+		if(i >= Display.averageFPS * 5)
 		{
-			i -= Display.averageFPS * 0.5;
+			i -= Display.averageFPS * 5;
 			title = format("FPS : %g", Display.averageFPS);
 			static bool type = false;
 			type = !type;

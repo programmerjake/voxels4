@@ -22,6 +22,7 @@ import entity.block;
 import block.block;
 import render.generate;
 import resource.texture_atlas;
+import std.stdio;
 
 private immutable float playerHeight = 1.8;
 private immutable float playerEyeHeight = 1.7;
@@ -279,7 +280,8 @@ public final class Player
     private static Mesh highlightBlockMesh;
     static this()
     {
-        highlightBlockMesh = Generate.unitBox(TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td, TextureAtlas.BlockHighlight.td).seal();
+        TextureDescriptor td = TextureAtlas.Glass.td; //FIXME(jacob#): change to TextureAtlas.BlockHighlight.td
+        highlightBlockMesh = Generate.unitBox(td, td, td, td, td, td).transform(Matrix.translate(-0.5, -0.5, -0.5).concat(Matrix.scale(1.05f)).concat(Matrix.translate(0.5, 0.5, 0.5))).seal();
     }
 
     private Mesh temp = null;
@@ -310,6 +312,7 @@ public final class Player
                 BlockPosition b = rc.block;
                 assert(b.get().good);
                 CollisionBox bb = b.get().getBoundingBox(b);
+                writefln("hit: <%s, %s, %s> to <%s, %s, %s>", bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z);
                 temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
                 break;
             }

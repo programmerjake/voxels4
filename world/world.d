@@ -946,7 +946,7 @@ private final class Chunk
                     if(rayIntersectsAABB(Vector(position.x + x - r, y - r, position.z + z - r), Vector(position.x + x + ENTITY_BLOCK_SIZE + r, y + ENTITY_BLOCK_SIZE + r, position.z + z + ENTITY_BLOCK_SIZE + r), origin, dir))
                     {
                         wasInCylinder = true;
-                        retval = forEachEntityInCylinderHelper(getEntityList(x, y, z), dg, origin, dir, r);
+                        retval = forEachEntityInCylinderHelper(getEntityList(x + position.x, y, z + position.z), dg, origin, dir, r);
                         if(retval != 0)
                             return retval;
                     }
@@ -1526,9 +1526,9 @@ public final class World
             ec = min(ec, data.collide(ray, cArgs));
             return 0;
         }
-        for(int dx = -Chunk.XZ_SIZE; dx <= Chunk.XZ_SIZE; dx++)
+        for(int dx = -Chunk.XZ_SIZE; dx <= Chunk.XZ_SIZE; dx += Chunk.XZ_SIZE)
         {
-            for(int dz = -Chunk.XZ_SIZE; dz <= Chunk.XZ_SIZE; dz++)
+            for(int dz = -Chunk.XZ_SIZE; dz <= Chunk.XZ_SIZE; dz += Chunk.XZ_SIZE)
             {
                 ChunkPosition curPos = ChunkPosition(pos.x + dx, pos.z + dz, pos.dimension);
                 if(!collidedChunks.containsKey(curPos))
@@ -1633,6 +1633,7 @@ public final class World
     {
         BlockPosition pos = getBlockPosition(ray.origin, ray.dimension);
         RayCollision bc = pos.get().collide(pos, ray, cArgs);
+        writefln("<%s, %s, %s> %s", pos.position.x, pos.position.y, pos.position.z, cast(void *)bc);
         if(bc !is null && bc.distance > maxT)
             bc = null;
         if(bc !is null)
@@ -1733,6 +1734,7 @@ public final class World
             if(t > maxT)
                 return null;
             bc = pos.get().collide(pos, ray, cArgs);
+            writefln("<%s, %s, %s> %s", pos.position.x, pos.position.y, pos.position.z, cast(void *)bc);
             if(bc !is null && bc.distance > maxT)
                 bc = null;
             if(bc !is null)
