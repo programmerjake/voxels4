@@ -67,8 +67,17 @@ private immutable int ImageDecoderFlags = IMG_INIT_PNG;
 
 private immutable int xResInternal, yResInternal;
 
+private static bool isMainThread = true;
+private static __gshared didInit = false;
+
 static this()
 {
+    if(didInit)
+    {
+        isMainThread = false;
+        return;
+    }
+    didInit = true;
 	DerelictSDL.load();
 	DerelictGL.load();
 	DerelictVorbis.load();

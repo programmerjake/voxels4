@@ -99,7 +99,7 @@ public struct Position
 {
     public int x, y, z;
     public Dimension dimension;
-    this(int x, int y, int z, Dimension dimension)
+    public pure this(int x, int y, int z, Dimension dimension)
     {
         this.x = x;
         this.y = y;
@@ -111,11 +111,11 @@ public struct Position
 public struct BlockPosition
 {
     private World worldInternal = null;
-    public @property World world()
+    public pure @property World world()
     {
         return worldInternal;
     }
-    public @property bool good()
+    public pure @property bool good()
     {
         return world !is null;
     }
@@ -139,7 +139,7 @@ public struct BlockPosition
                 + Chunk.Z_INDEX_FACTOR * (z & Chunk.MOD_SIZE_MASK);
     }
 
-    package this(in int x, in int y, in int z, Chunk c)
+    package pure this(in int x, in int y, in int z, Chunk c)
     {
         this.worldInternal = c.world;
         this.x = x;
@@ -151,7 +151,7 @@ public struct BlockPosition
                 + Chunk.Z_INDEX_FACTOR * (z & Chunk.MOD_SIZE_MASK);
     }
 
-    public this(BlockPosition rt)
+    public pure this(BlockPosition rt)
     {
         this.worldInternal = rt.world;
         this.x = rt.x;
@@ -167,20 +167,20 @@ public struct BlockPosition
         public immutable int x, y, z;
         public immutable Dimension dimension;
         public @disable this();
-        package this(int x, int y, int z, Dimension dimension)
+        package pure this(int x, int y, int z, Dimension dimension)
         {
             this.x = x;
             this.y = y;
             this.z = z;
             this.dimension = dimension;
         }
-        public Position opCast(T = Position)()
+        public pure Position opCast(T = Position)()
         {
             return Position(x, y, z, dimension);
         }
     }
 
-    public @property BlockPositionPosition position()
+    public pure @property BlockPositionPosition position()
     {
         assert(good);
         return BlockPositionPosition(x, y, z, dimension);
@@ -920,6 +920,15 @@ private final class Chunk
         return 0;
     }
 
+    private float forEachEntityInCylinderR;
+    private int forEachEntityInCylinderStartY;
+
+    private RayCollision forEachEntityInCylinderCollideFn(Vector pos, Dimension d, float t)
+    {
+        forEachEntityInCylinderStartY = ifloor(pos.y - forEachEntityInCylinderR);
+        return RayCollision();
+    }
+
     public int forEachEntityInCylinder(int delegate(ref EntityData data) dg, Vector origin, Vector dir, float r) // dir must be normalized
     {
         int retval;
@@ -930,13 +939,10 @@ private final class Chunk
         {
             for(int z = 0; z < XZ_SIZE; z += ENTITY_BLOCK_SIZE)
             {
-                int startY = Y_SIZE;
-                RayCollision collideFn(Vector pos, Dimension d, float t)
-                {
-                    startY = ifloor(pos.y - r);
-                    return null;
-                }
-                collideWithAABB(Vector(position.x + x - r, -r, position.z + z - r), Vector(position.x + x + ENTITY_BLOCK_SIZE + r, Y_SIZE + r, position.z + z + ENTITY_BLOCK_SIZE + r), Ray(origin, position.dimension, dir), &collideFn);
+                forEachEntityInCylinderR = r;
+                forEachEntityInCylinderStartY = Y_SIZE;
+                collideWithAABB(Vector(position.x + x - r, -r, position.z + z - r), Vector(position.x + x + ENTITY_BLOCK_SIZE + r, Y_SIZE + r, position.z + z + ENTITY_BLOCK_SIZE + r), Ray(origin, position.dimension, dir), &forEachEntityInCylinderCollideFn);
+                int startY = forEachEntityInCylinderStartY;
                 if(startY < 0)
                     startY = 0;
                 startY &= ~(ENTITY_BLOCK_SIZE - 1);
@@ -1518,40 +1524,46 @@ public final class World
     private static immutable int assumedMaxEntitySize = 4;
     static assert(assumedMaxEntitySize <= Chunk.XZ_SIZE);
 
-    private RayCollision collideEntityHelper(LinkedHashMap!ChunkPosition collidedChunks, ChunkPosition pos, Ray ray, float maxT, RayCollisionArgs cArgs)
+    private RayCollision collideEntityHelperCollision = RayCollision();
+    private Ray collideEntityHelperRay;
+    private RayCollisionArgs collideEntityHelperCArgs = null;
+
+    private int collideEntityHelperCollideFn(ref EntityData data)
     {
-        RayCollision ec = null;
-        int collideFn(ref EntityData data)
-        {
-            ec = min(ec, data.collide(ray, cArgs));
-            return 0;
-        }
+        collideEntityHelperCollision = min(collideEntityHelperCollision, data.collide(collideEntityHelperRay, collideEntityHelperCArgs));
+        return 0;
+    }
+
+    private RayCollision collideEntityHelper(ChunkPosition lastPos, ChunkPosition pos, Ray ray, float maxT, RayCollisionArgs cArgs)
+    {
+        collideEntityHelperCollision = RayCollision();
+        collideEntityHelperRay = ray;
+        collideEntityHelperCArgs = cArgs;
         for(int dx = -Chunk.XZ_SIZE; dx <= Chunk.XZ_SIZE; dx += Chunk.XZ_SIZE)
         {
             for(int dz = -Chunk.XZ_SIZE; dz <= Chunk.XZ_SIZE; dz += Chunk.XZ_SIZE)
             {
                 ChunkPosition curPos = ChunkPosition(pos.x + dx, pos.z + dz, pos.dimension);
-                if(!collidedChunks.containsKey(curPos))
-                {
-                    getOrAddChunk(curPos).forEachEntityInCylinder(&collideFn, ray.origin, ray.dir, assumedMaxEntitySize);
-                    collidedChunks.set(curPos, curPos);
-                }
+                if(rayIntersectsAABB(Vector(curPos.x - assumedMaxEntitySize, -1e5, curPos.z - assumedMaxEntitySize), Vector(curPos.x + Chunk.XZ_SIZE + assumedMaxEntitySize, 1e5, curPos.z + Chunk.XZ_SIZE + assumedMaxEntitySize), ray.origin, ray.dir))
+                    getOrAddChunk(curPos).forEachEntityInCylinder(&collideEntityHelperCollideFn, ray.origin, ray.dir, assumedMaxEntitySize);
             }
         }
-        if(ec !is null && ec.distance > maxT)
-            ec = null;
+        collideEntityHelperCArgs = null;
+        if(!collideEntityHelperCollision.empty && collideEntityHelperCollision.distance > maxT)
+            collideEntityHelperCollision = RayCollision();
+        RayCollision ec = collideEntityHelperCollision;
+        collideEntityHelperCollision = RayCollision();
         return ec;
     }
 
 
     private RayCollision collideEntity(Ray ray, float maxT, RayCollisionArgs cArgs)
     {
-        LinkedHashMap!ChunkPosition collidedChunks = new LinkedHashMap!ChunkPosition();
-        ChunkPosition pos = ChunkPosition(ray.origin, ray.dimension);
-        RayCollision ec = collideEntityHelper(collidedChunks, pos, ray, maxT, cArgs);
-        if(ec !is null && ec.distance > maxT)
-            ec = null;
-        if(ec !is null)
+        ChunkPosition pos = ChunkPosition(ray.origin, ray.dimension), lastPos = pos;
+        RayCollision ec = collideEntityHelper(lastPos, pos, ray, maxT, cArgs);
+        if(!ec.empty && ec.distance > maxT)
+            ec = RayCollision();
+        if(!ec.empty)
             return ec;
         bool useX = (fabs(ray.dir.x) >= eps);
         bool useZ = (fabs(ray.dir.z) >= eps);
@@ -1582,7 +1594,7 @@ public final class World
                 destX -= Chunk.XZ_SIZE;
             next.x = (target - ray.origin.x) * invDir.x;
         }
-        if(useX)
+        if(useZ)
         {
             invDir.z = 1 / ray.dir.z;
             step.z = fabs(invDir.z) * Chunk.XZ_SIZE;
@@ -1620,23 +1632,25 @@ public final class World
                 destZ += deltaZ;
             }
             if(t > maxT)
-                return null;
-            ec = collideEntityHelper(collidedChunks, pos, ray, maxT, cArgs);
-            if(ec !is null && ec.distance > maxT)
-                ec = null;
-            if(ec !is null)
+                return RayCollision();
+            ec = collideEntityHelper(lastPos, pos, ray, maxT, cArgs);
+            lastPos = pos;
+            if(!ec.empty && ec.distance > maxT)
+                ec = RayCollision();
+            if(!ec.empty)
                 return ec;
         }
     }
 
     private RayCollision collideBlock(Ray ray, float maxT, RayCollisionArgs cArgs)
     {
+        //writefln("<%s, %s, %s> <%s, %s, %s>", ray.origin.x, ray.origin.y, ray.origin.z, ray.dir.x, ray.dir.y, ray.dir.z);
         BlockPosition pos = getBlockPosition(ray.origin, ray.dimension);
         RayCollision bc = pos.get().collide(pos, ray, cArgs);
-        writefln("<%s, %s, %s> %s", pos.position.x, pos.position.y, pos.position.z, cast(void *)bc);
-        if(bc !is null && bc.distance > maxT)
-            bc = null;
-        if(bc !is null)
+        //writefln("<%s, %s, %s> %s", pos.position.x, pos.position.y, pos.position.z, bc.empty);
+        if(!bc.empty && bc.distance > maxT)
+            bc = RayCollision();
+        if(!bc.empty)
             return bc;
         bool useX = (fabs(ray.dir.x) >= eps);
         bool useY = (fabs(ray.dir.y) >= eps);
@@ -1695,11 +1709,11 @@ public final class World
             if(ray.dir.z < 0)
             {
                 target = iceil(currentPos.z) - 1;
-                deltaX = -1;
+                deltaZ = -1;
             }
             else
             {
-                deltaX = 1;
+                deltaZ = 1;
                 target = ifloor(currentPos.z) + 1;
             }
             destZ = target;
@@ -1732,12 +1746,12 @@ public final class World
                 destZ += deltaZ;
             }
             if(t > maxT)
-                return null;
+                return RayCollision();
             bc = pos.get().collide(pos, ray, cArgs);
-            writefln("<%s, %s, %s> %s", pos.position.x, pos.position.y, pos.position.z, cast(void *)bc);
-            if(bc !is null && bc.distance > maxT)
-                bc = null;
-            if(bc !is null)
+            //writefln("<%s, %s, %s> %s", pos.position.x, pos.position.y, pos.position.z, bc.empty);
+            if(!bc.empty && bc.distance > maxT)
+                bc = RayCollision();
+            if(!bc.empty)
                 return bc;
         }
     }
@@ -1745,7 +1759,7 @@ public final class World
     public RayCollision collide(Ray ray, float maxT, RayCollisionArgs cArgs)
     {
         RayCollision bc = collideBlock(ray, maxT, cArgs);
-        if(bc is null)
+        if(bc.empty)
             return collideEntity(ray, maxT, cArgs);
         RayCollision ec = collideEntity(ray, bc.distance, cArgs);
         return min(ec, bc);

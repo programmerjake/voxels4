@@ -25,6 +25,7 @@ public import persistance.game_store_stream;
 import block.air;
 public import physics.physics;
 import platform;
+import std.functional;
 
 public struct BlockData
 {
@@ -36,7 +37,7 @@ public struct BlockData
     {
         this.descriptor = descriptor;
     }
-    public @property bool good() const
+    public pure @property bool good() const
     {
         return descriptor !is null;
     }
@@ -80,25 +81,43 @@ public struct BlockData
         assert(good);
         return descriptor.collideWithBox(pos, min, max, mask);
     }
-    public RayCollision collide(Ray ray, RayCollisionArgs cArgs)
+
+    public RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs)
     {
+        static RayCollision collideFn(Vector position, Dimension dimension, float t)
+        {
+            return BlockRayCollision(position, dimension, t, BlockPosition());
+        }
+        return collideWithBlock(ray, toDelegate(&collideFn));
+    }
+
+    public RayCollision collide(Ray ray, RayCollisionArgs cArgs) pure
+    {
+        static RayCollision collideFn(Vector position, Dimension dimension, float t) pure
+        {
+            return UninitializedRayCollision(position, dimension, t);
+        }
         if(!good)
-            return collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new UninitializedRayCollision(position, dimension, t);});
+            return collideWithBlock(ray, toDelegate(&collideFn));
         return descriptor.collide(this, ray, cArgs);
     }
-    public RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs)
+    public RayCollision collide(BlockPosition pos, Ray ray, RayCollisionArgs cArgs) pure
     {
+        static RayCollision collideFn(Vector position, Dimension dimension, float t) pure
+        {
+            return UninitializedRayCollision(position, dimension, t);
+        }
         ray.origin -= Vector(pos.position.x, pos.position.y, pos.position.z);
         RayCollision retval;
         if(!good)
-            retval = collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new UninitializedRayCollision(position, dimension, t);});
+            retval = collideWithBlock(ray, toDelegate(&collideFn));
         else
             retval = descriptor.collide(this, ray, cArgs);
-        if(cast(BlockRayCollision)retval !is null)
+        if(retval.type == RayCollision.Type.Block)
         {
-            (cast(BlockRayCollision)retval).block = pos;
+            retval.block = pos;
         }
-        if(retval !is null)
+        if(!retval.empty)
             retval.point += Vector(pos.position.x, pos.position.y, pos.position.z);
         return retval;
     }
@@ -159,7 +178,7 @@ public abstract class BlockDescriptor
     protected abstract void writeInternal(BlockData data, GameStoreStream gss);
     public abstract Collision collideWithCylinder(BlockPosition pos, Cylinder c, CollisionMask mask);
     public abstract Collision collideWithBox(BlockPosition pos, Vector min, Vector max, CollisionMask mask);
-    public abstract RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs);
+    public abstract pure RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs);
     public abstract BoxList getCollisionBoxes(BlockPosition pos);
     public abstract ulong getCollisionMask();
     public bool isEqual(BlockData l, BlockData r)

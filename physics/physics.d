@@ -29,17 +29,17 @@ public struct CollisionBox
 {
     public Vector min, max;
     public Dimension dimension;
-    public this(Vector min, Vector max, Dimension dimension)
+    public pure this(Vector min, Vector max, Dimension dimension)
     {
         this.min = min;
         this.max = max;
         this.dimension = dimension;
     }
-    public @property Vector center() const
+    public pure @property Vector center() const
     {
         return (min + max) * 0.5;
     }
-    public @property void center(Vector c)
+    public pure @property void center(Vector c)
     {
         c -= center;
         min += c;
@@ -77,16 +77,16 @@ public struct CollisionMask
     }
     public ulong mask = COLLIDE_ALL;
     public EntityData * ignore = null;
-    public this(ulong mask, EntityData * ignore = null)
+    public pure this(ulong mask, EntityData * ignore = null)
     {
         this.mask = mask;
         this.ignore = ignore;
     }
-    public this(EntityData * ignore)
+    public pure this(EntityData * ignore)
     {
         this(COLLIDE_ALL, ignore);
     }
-    public bool matches(ulong mask, EntityData * e)
+    public pure bool matches(ulong mask, EntityData * e) const
     {
         if((mask & this.mask) != 0 && (e !is ignore || e is null))
             return true;
@@ -100,18 +100,18 @@ public struct Collision
     public Vector normal = Vector(0, 0, 0);
     public int count = 0;
     public Dimension dimension;
-    public this(Vector point, Dimension dimension, Vector normal)
+    public pure this(Vector point, Dimension dimension, Vector normal)
     {
         this.point = point;
         this.normal = normal;
         this.dimension = dimension;
         this.count = 1;
     }
-    public @property bool good()
+    public pure @property bool good()
     {
         return this.count > 0;
     }
-    public void normalize()
+    public pure void normalize()
     {
         if(good)
         {
@@ -210,7 +210,7 @@ public Vector findBestBoxPosition(CollisionBox movableBox, BoxList boxes)
     return retval;
 }
 
-public Collision combine(Collision a, Collision b)
+public pure Collision combine(Collision a, Collision b)
 {
     if(!a.good)
         return b;
@@ -226,57 +226,66 @@ public struct Ray
     public Vector origin;
     public Vector dir;
     public Dimension dimension;
-    public this(Vector origin, Dimension dimension, Vector dir)
+    public pure this(Vector origin, Dimension dimension, Vector dir)
     {
         this.origin = origin;
         assert(dir != Vector.ZERO);
         this.dir = normalize(dir);
         this.dimension = dimension;
     }
-    public Ray transformAndSet(Matrix m)
+    public pure Ray transformAndSet(Matrix m)
     {
         Vector prevOrigin = origin;
         origin = m.apply(origin);
         dir = normalize(m.apply(prevOrigin + dir) - origin);
         return this;
     }
-    public Vector eval(float t)
+    public pure Vector eval(float t) const
     {
         return origin + t * dir;
     }
 }
 
-public abstract class RayCollision
+public struct RayCollision
 {
     public enum Type
     {
+        None,
         Uninitialized,
         Block,
         Entity
     }
-    public immutable Type type;
+    public Type type = Type.None;
     public Vector point;
     public Dimension dimension;
     public float distance;
-    public this(Type type, Vector point, Dimension dimension, float distance)
+    public BlockPosition block;
+    public EntityData * entity = null;
+    public pure this(Type type, Vector point, Dimension dimension, float distance)
     {
         this.type = type;
         this.point = point;
         this.distance = distance;
         this.dimension = dimension;
     }
-    public RayCollision transformAndSet(Matrix m)
+    public pure RayCollision transformAndSet(Matrix m)
     {
+        if(type == Type.None)
+            return this;
         point = m.apply(point);
         return this;
     }
+    public pure @property bool empty()
+    {
+        return type == Type.None;
+    }
 }
 
-public RayCollision min(RayCollision a, RayCollision b)
+public pure RayCollision min(RayCollision a, RayCollision b)
 {
-    if(a is null)
+    if(a.empty)
         return b;
-    if(b is null)
+    if(b.empty)
         return a;
     if(a.distance < b.distance)
         return a;
@@ -287,45 +296,39 @@ public interface RayCollisionArgs
 {
 }
 
-public final class UninitializedRayCollision : RayCollision
+public pure RayCollision UninitializedRayCollision(Vector point, Dimension dimension, float distance)
 {
-    public this(Vector point, Dimension dimension, float distance)
-    {
-        super(Type.Uninitialized, point, dimension, distance);
-    }
+    return RayCollision(RayCollision.Type.Uninitialized, point, dimension, distance);
 }
 
-public final class BlockRayCollision : RayCollision
+public pure RayCollision BlockRayCollision(Vector point, Dimension dimension, float distance, BlockPosition block)
 {
-    public BlockPosition block;
-    public this(Vector point, Dimension dimension, float distance, BlockPosition block)
-    {
-        super(Type.Block, point, dimension, distance);
-        this.block = block;
-    }
+    RayCollision retval = RayCollision(RayCollision.Type.Block, point, dimension, distance);
+    retval.block = block;
+    return retval;
 }
 
-public final class EntityRayCollision : RayCollision
+public pure RayCollision EntityRayCollision(Vector point, Dimension dimension, float distance, ref EntityData entity)
 {
-    public EntityData * entity;
-    public this(Vector point, Dimension dimension, float distance, ref EntityData entity)
-    {
-        super(Type.Entity, point, dimension, distance);
-        this.entity = &entity;
-    }
-    public this(Vector point, Dimension dimension, float distance, EntityData * entity)
-    {
-        this(point, dimension, distance, *entity);
-        assert(entity !is null);
-    }
-    public this(RayCollision c, ref EntityData entity)
-    {
-        this(c.point, c.dimension, c.distance, entity);
-    }
-    public this(RayCollision c, EntityData * entity)
-    {
-        this(c.point, c.dimension, c.distance, entity);
-    }
+    RayCollision retval = RayCollision(RayCollision.Type.Entity, point, dimension, distance);
+    retval.entity = &entity;
+    return retval;
+}
+
+public pure RayCollision EntityRayCollision(Vector point, Dimension dimension, float distance, EntityData * entity)
+{
+    assert(entity !is null);
+    return EntityRayCollision(point, dimension, distance, *entity);
+}
+
+public pure RayCollision EntityRayCollision(RayCollision c, ref EntityData entity)
+{
+    return EntityRayCollision(c.point, c.dimension, c.distance, entity);
+}
+
+public pure RayCollision EntityRayCollision(RayCollision c, EntityData * entity)
+{
+    return EntityRayCollision(c.point, c.dimension, c.distance, entity);
 }
 
 public BlockFace getRayEnterFace(Position pos, Ray ray)
@@ -491,6 +494,74 @@ public BlockFace getRayExitFace(Position pos, Ray ray)
     return retval;
 }
 
+public pure RayCollision collideWithBlock(Ray ray, RayCollision delegate(Vector position, Dimension dimension, float t) pure makeRetval)
+{
+    return collideWithBlock(Position(0, 0, 0, ray.dimension), ray, makeRetval);
+}
+
+public pure RayCollision collideWithBlock(Position pos, Ray ray, RayCollision delegate(Vector position, Dimension dimension, float t) pure makeRetval)
+{
+    assert(pos.dimension == ray.dimension);
+    if(ray.origin.x >= pos.x && ray.origin.x <= pos.x + 1 &&
+       ray.origin.y >= pos.y && ray.origin.y <= pos.y + 1 &&
+       ray.origin.z >= pos.z && ray.origin.z <= pos.z + 1)
+        return makeRetval(ray.origin, ray.dimension, 0);
+    Vector t = Vector.NXNYNZ;
+    Vector cPos = Vector(pos.x, pos.y, pos.z);
+    if(fabs(ray.dir.x) >= eps)
+    {
+        if(ray.dir.x < 0)
+            cPos.x += 1;
+        t.x = (cPos.x - ray.origin.x) / ray.dir.x;
+        if(t.x > 0)
+        {
+            Vector hitPt = ray.eval(t.x);
+            if(hitPt.y < pos.y || hitPt.y > pos.y + 1 || hitPt.z < pos.z || hitPt.z > pos.z + 1)
+                t.x = -1;
+        }
+    }
+    else if(ray.origin.x < pos.x || ray.origin.x > pos.x + 1)
+        return RayCollision();
+    if(fabs(ray.dir.y) >= eps)
+    {
+        if(ray.dir.y < 0)
+            cPos.y += 1;
+        t.y = (cPos.y - ray.origin.y) / ray.dir.y;
+        if(t.y > 0)
+        {
+            Vector hitPt = ray.eval(t.y);
+            if(hitPt.x < pos.x || hitPt.x > pos.x + 1 || hitPt.z < pos.z || hitPt.z > pos.z + 1)
+                t.y = -1;
+        }
+    }
+    else if(ray.origin.y < pos.y || ray.origin.y > pos.y + 1)
+        return RayCollision();
+    if(fabs(ray.dir.z) >= eps)
+    {
+        if(ray.dir.z < 0)
+            cPos.z += 1;
+        t.z = (cPos.z - ray.origin.z) / ray.dir.z;
+        if(t.z > 0)
+        {
+            Vector hitPt = ray.eval(t.z);
+            if(hitPt.x < pos.x || hitPt.x > pos.x + 1 || hitPt.y < pos.y || hitPt.y > pos.y + 1)
+                t.z = -1;
+        }
+    }
+    else if(ray.origin.z < pos.z || ray.origin.z > pos.z + 1)
+        return RayCollision();
+    float minT = -1;
+    if(t.x > 0 && (minT < 0 || minT > t.x))
+        minT = t.x;
+    if(t.y > 0 && (minT < 0 || minT > t.y))
+        minT = t.y;
+    if(t.z > 0 && (minT < 0 || minT > t.z))
+        minT = t.z;
+    if(minT > 0)
+        return makeRetval(ray.eval(minT), ray.dimension, minT);
+    return RayCollision();
+}
+
 public RayCollision collideWithBlock(Ray ray, RayCollision delegate(Vector position, Dimension dimension, float t) makeRetval)
 {
     return collideWithBlock(Position(0, 0, 0, ray.dimension), ray, makeRetval);
@@ -518,7 +589,7 @@ public RayCollision collideWithBlock(Position pos, Ray ray, RayCollision delegat
         }
     }
     else if(ray.origin.x < pos.x || ray.origin.x > pos.x + 1)
-        return null;
+        return RayCollision();
     if(fabs(ray.dir.y) >= eps)
     {
         if(ray.dir.y < 0)
@@ -532,7 +603,7 @@ public RayCollision collideWithBlock(Position pos, Ray ray, RayCollision delegat
         }
     }
     else if(ray.origin.y < pos.y || ray.origin.y > pos.y + 1)
-        return null;
+        return RayCollision();
     if(fabs(ray.dir.z) >= eps)
     {
         if(ray.dir.z < 0)
@@ -546,7 +617,7 @@ public RayCollision collideWithBlock(Position pos, Ray ray, RayCollision delegat
         }
     }
     else if(ray.origin.z < pos.z || ray.origin.z > pos.z + 1)
-        return null;
+        return RayCollision();
     float minT = -1;
     if(t.x > 0 && (minT < 0 || minT > t.x))
         minT = t.x;
@@ -556,7 +627,7 @@ public RayCollision collideWithBlock(Position pos, Ray ray, RayCollision delegat
         minT = t.z;
     if(minT > 0)
         return makeRetval(ray.eval(minT), ray.dimension, minT);
-    return null;
+    return RayCollision();
 }
 
 public RayCollision collideWithAABB(Vector min, Vector max, Ray ray, RayCollision delegate(Vector position, Dimension dimension, float t) makeRetval)
@@ -580,7 +651,7 @@ public RayCollision collideWithAABB(Vector min, Vector max, Ray ray, RayCollisio
         }
     }
     else if(ray.origin.x < min.x || ray.origin.x > max.x)
-        return null;
+        return RayCollision();
     if(fabs(ray.dir.y) >= eps)
     {
         if(ray.dir.y < 0)
@@ -594,7 +665,7 @@ public RayCollision collideWithAABB(Vector min, Vector max, Ray ray, RayCollisio
         }
     }
     else if(ray.origin.y < min.y || ray.origin.y > max.y)
-        return null;
+        return RayCollision();
     if(fabs(ray.dir.z) >= eps)
     {
         if(ray.dir.z < 0)
@@ -608,7 +679,7 @@ public RayCollision collideWithAABB(Vector min, Vector max, Ray ray, RayCollisio
         }
     }
     else if(ray.origin.z < min.z || ray.origin.z > max.z)
-        return null;
+        return RayCollision();
     float minT = -1;
     if(t.x > 0 && (minT < 0 || minT > t.x))
         minT = t.x;
@@ -618,7 +689,7 @@ public RayCollision collideWithAABB(Vector min, Vector max, Ray ray, RayCollisio
         minT = t.z;
     if(minT > 0)
         return makeRetval(ray.eval(minT), ray.dimension, minT);
-    return null;
+    return RayCollision();
 }
 
 public struct PlaneEq /// dir points away from the inside halfspace

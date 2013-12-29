@@ -38,11 +38,17 @@ import block.anim_test;
 import entity.player.player;
 import entity.player.input;
 import persistance.game_version;
+import core.thread;
+import core.memory;
+
+private immutable bool manualGC = false;
 
 int main(string[] args)
 {
+    static if(manualGC)
+        GC.disable();
     bool done = false;
-    World w = new World();
+    scope World w = new World();
     auto playerInput = new DefaultPlayerInput();
     const int size = 20;
     for(int x = -size; x <= size; x++)
@@ -65,6 +71,8 @@ int main(string[] args)
             w.advanceTime(0);
         }
     }
+    static if(manualGC)
+        GC.collect();
     Player player = Player.make("", playerInput, w, Vector(0.5, 65.5, 0.5), Dimension.Overworld);
     playerInput.setPlayer(player);
     w.addEntity(player.data);
@@ -72,10 +80,10 @@ int main(string[] args)
     Display.title = "Voxels " ~ GameVersion.VERSION;
     w.viewDistance = 48;
     playerInput.creativeMode = true;
-    //playerInput.initMode(); //FIXME(jacob#): uncomment
+    debug {} else playerInput.initMode();
     bool doMove = false;
     string title = "";
-    Mesh textMesh = new Mesh();
+    scope Mesh textMesh = new Mesh();
     while(!done)
     {
 		Display.initFrame();
@@ -91,6 +99,18 @@ int main(string[] args)
             w.advanceTime(Display.frameDeltaTime);
         else
             doMove = true;
+        static if(manualGC)
+        {
+            static float GCAccumTime = 0;
+            GCAccumTime += Display.frameDeltaTime;
+            if(GCAccumTime > 30)
+            {
+                GC.enable();
+                GC.collect();
+                GC.disable();
+                GCAccumTime = 0;
+            }
+        }
 		static float i = 0;
 		i += 1.0;
 		if(i >= Display.averageFPS * 5)

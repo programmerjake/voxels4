@@ -29,58 +29,58 @@ public struct Vector
     /** z coordinate */
     public float z = 0;
 
-    public this(float x, float y, float z)
+    public pure this(float x, float y, float z)
     {
         this.x = x;
         this.y = y;
         this.z = z;
     }
 
-	public @property Vector dup() const
+	public pure @property Vector dup() const
 	{
 		return this;
 	}
 
-    public Vector opUnary(string op)() const if(op == "-")
+    public pure Vector opUnary(string op)() const if(op == "-")
 	{
 		return Vector(-x, -y, -z);
 	}
 
-    public Vector opUnary(string op)() const if(op == "+")
+    public pure Vector opUnary(string op)() const if(op == "+")
 	{
 		return this;
 	}
 
-	public Vector opBinary(string op)(const Vector rt) const
+	public pure Vector opBinary(string op)(const Vector rt) const
 	{
 		return mixin("Vector(x " ~ op ~ " rt.x, y " ~ op ~ " rt.y, z " ~ op ~ " rt.z)");
 	}
 
-	public Vector opBinary(string op)(Vector rt)
+	public pure Vector opBinary(string op)(Vector rt)
 	{
 		return mixin("Vector(x " ~ op ~ " rt.x, y " ~ op ~ " rt.y, z " ~ op ~ " rt.z)");
 	}
 
-	public bool opEquals(ref const Vector rt) const
+	public pure bool opEquals(ref const Vector rt) const
 	{
 		return x == rt.x && y == rt.y && z == rt.z;
 	}
 
-	public void opOpAssign(string op)(const Vector rt)
+	public pure void opOpAssign(string op)(const Vector rt)
 	{
 		mixin("x " ~ op ~ "= rt.x;");
 		mixin("y " ~ op ~ "= rt.y;");
 		mixin("z " ~ op ~ "= rt.z;");
 	}
 
-	public void opOpAssign(string op)(const float rt)
+	public pure void opOpAssign(string op)(const float rt)
 	{
 		mixin("x " ~ op ~ "= rt;");
 		mixin("y " ~ op ~ "= rt;");
 		mixin("z " ~ op ~ "= rt;");
 	}
 
-    public static Vector normalize(in float x, in float y, in float z)
+    public pure static Vector normalize(in float x, in float y, in float z)
     {
         float r = sqrt(x * x + y * y + z * z);
         if(r == 0)
@@ -116,7 +116,7 @@ public struct Vector
     public static immutable Vector XNYNZ = Vector(1, -1, -1);
     public static immutable Vector NXNYNZ = Vector(-1, -1, -1);
 
-    public @property float phi()
+    public pure @property float phi()
     {
 		float r = abs(this);
 		if(r == 0)
@@ -126,23 +126,23 @@ public struct Vector
         return asin(v);
     }
 
-    public @property float theta()
+    public pure @property float theta()
     {
         return atan2(this.x, this.z);
     }
 
-    public @property float rSpherical()
+    public pure @property float rSpherical()
     {
         return sqrt(this.x * this.x + this.y * this.y + this.z
                 * this.z);
     }
 
-    public @property float rCylindrical()
+    public pure @property float rCylindrical()
     {
         return sqrt(this.x * this.x + this.z * this.z);
     }
 
-    public static Vector sphericalCoordinate(in float r,
+    public pure static Vector sphericalCoordinate(in float r,
                                              in float theta,
                                              in float phi)
     {
@@ -151,7 +151,7 @@ public struct Vector
                 * sin(phi), r * cos(theta) * cosPhi);
     }
 
-    public static Vector cylindricalCoordinate(in float r,
+    public pure static Vector cylindricalCoordinate(in float r,
                                                in float theta,
                                                in float y)
     {
@@ -159,50 +159,50 @@ public struct Vector
                 * cos(theta));
     }
 
-    public @property float rMaximum()
+    public pure @property float rMaximum()
     {
         return fmax(fmax(fabs(this.x), fabs(this.y)),
                         fabs(this.z));
     }
 
-    public @property float rCylindricalMaximum()
+    public pure @property float rCylindricalMaximum()
     {
         return fmax(sqrt(this.x * this.x + this.z * this.z),
                         fabs(this.y));
     }
 
-	public Vector opBinaryRight(string op)(float a) const if(op == "*")
+	public pure Vector opBinaryRight(string op)(float a) const if(op == "*")
 	{
 		return Vector(a * x, a * y, a * z);
 	}
 
-	public Vector opBinary(string op)(float b) const if(op == "*" || op == "/")
+	public pure Vector opBinary(string op)(float b) const if(op == "*" || op == "/")
 	{
 		return mixin("Vector(x " ~ op ~ " b, y " ~ op ~ " b, z " ~ op ~ " b)");
 	}
 }
 
-public float dot(Vector a, Vector b)
+public pure float dot(Vector a, Vector b)
 {
 	return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-public Vector cross(Vector a, Vector b)
+public pure Vector cross(Vector a, Vector b)
 {
 	return Vector(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
 }
 
-public float absSquared(Vector v)
+public pure float absSquared(Vector v)
 {
 	return dot(v, v);
 }
 
-public float abs(Vector v)
+public pure float abs(Vector v)
 {
 	return sqrt(absSquared(v));
 }
 
-public Vector normalize(Vector v)
+public pure Vector normalize(Vector v)
 {
 	float r = abs(v);
 	if(r == 0)
@@ -210,7 +210,7 @@ public Vector normalize(Vector v)
 	return v / r;
 }
 
-public Vector normalizeCylindrical(Vector v)
+public pure Vector normalizeCylindrical(Vector v)
 {
 	float r = v.rCylindrical;
 	if(r == 0)
@@ -218,7 +218,7 @@ public Vector normalizeCylindrical(Vector v)
 	return v / r;
 }
 
-public Vector normalizeMaximum(Vector v)
+public pure Vector normalizeMaximum(Vector v)
 {
 	float r = v.rMaximum;
 	if(r == 0)
@@ -226,7 +226,7 @@ public Vector normalizeMaximum(Vector v)
 	return v / r;
 }
 
-public Vector normalizeCylindricalMaximum(Vector v)
+public pure Vector normalizeCylindricalMaximum(Vector v)
 {
 	float r = v.rCylindricalMaximum;
 	if(r == 0)

@@ -245,18 +245,17 @@ public final class BlockEntity : EntityDescriptor
     {
         static if(true) // TODO (jacob#): check if we need ray hits
         {
-            Data * data_data = cast(Data *)data.data;
-            if(data_data is null)
-                return null;
-            assert(data_data.block.good);
-            Matrix drawTransform = getDrawTransform(data, data_data);
-            Matrix invDrawTransform = drawTransform.invert();
-            ray.transformAndSet(invDrawTransform);
-            RayCollision bc = data_data.block.collide(ray, cArgs);
-            if(bc is null)
-                return null;
-            bc.transformAndSet(drawTransform);
-            return new EntityRayCollision(bc, data);
+            struct CollideArgs
+            {
+                EntityData * data;
+                RayCollision fn(Vector position, Dimension dimension, float t)
+                {
+                    return EntityRayCollision(position, dimension, t, data);
+                }
+            }
+            CollideArgs collideArgs;
+            collideArgs.data = &data;
+            return collideWithAABB(data.position - 0.5 * blockSize * Vector.XYZ, data.position + 0.5 * blockSize * Vector.XYZ, ray, &collideArgs.fn);
         }
         else
         {

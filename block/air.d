@@ -96,12 +96,17 @@ public final class Air : BlockDescriptor
 
     public override RayCollision collide(BlockData pos, Ray ray, RayCollisionArgs cArgs)
     {
-        return null;
+        return RayCollision();
     }
 
     public override BoxList getCollisionBoxes(BlockPosition pos)
     {
         return [];
+    }
+
+    public override CollisionBox getBoundingBox(BlockPosition pos)
+    {
+        return CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension);
     }
 
     public override ulong getCollisionMask()

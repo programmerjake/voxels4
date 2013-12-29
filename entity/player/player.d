@@ -87,7 +87,23 @@ private final class PlayerDescriptor : EntityDescriptor
 
     public override RayCollision collide(ref EntityData data, Ray ray, RayCollisionArgs cArgs)
     {
-        return collideWithAABB(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new EntityRayCollision(position, dimension, t, data);});
+        Player p = cast(Player)data.data;
+        assert(p !is null);
+        if(p.reportRayHit)
+        {
+            struct CollideArgs
+            {
+                EntityData * data;
+                RayCollision fn(Vector position, Dimension dimension, float t)
+                {
+                    return EntityRayCollision(position, dimension, t, data);
+                }
+            }
+            CollideArgs collideArgs;
+            collideArgs.data = &data;
+            return collideWithAABB(data.position + Vector(-0.5 * playerWidth, -playerEyeHeight, -0.5 * playerWidth), data.position + Vector(0.5 * playerWidth, playerHeight - playerEyeHeight, 0.5 * playerWidth), ray, &collideArgs.fn);
+        }
+        return RayCollision();
     }
 
     public override CollisionBox getBoundingBox(EntityData data)
@@ -280,7 +296,7 @@ public final class Player
     private static Mesh highlightBlockMesh;
     static this()
     {
-        TextureDescriptor td = TextureAtlas.Glass.td; //FIXME(jacob#): change to TextureAtlas.BlockHighlight.td
+        TextureDescriptor td = TextureAtlas.BlockHighlight.td;
         highlightBlockMesh = Generate.unitBox(td, td, td, td, td, td).transform(Matrix.translate(-0.5, -0.5, -0.5).concat(Matrix.scale(1.05f)).concat(Matrix.translate(0.5, 0.5, 0.5))).seal();
     }
 
@@ -298,35 +314,32 @@ public final class Player
         if(temp is null)
             temp = new Mesh();
         temp.clear();
-        RayCollision theRayCollision = getRayCollision(null);
-        if(theRayCollision !is null)
+        RayCollision rc = getRayCollision(null);
+        final switch(rc.type)
         {
-            final switch(theRayCollision.type)
-            {
-            case RayCollision.Type.Uninitialized:
-                break;
-            case RayCollision.Type.Block:
-            {
-                BlockRayCollision rc = cast(BlockRayCollision)theRayCollision;
-                assert(rc !is null);
-                BlockPosition b = rc.block;
-                assert(b.get().good);
-                CollisionBox bb = b.get().getBoundingBox(b);
-                writefln("hit: <%s, %s, %s> to <%s, %s, %s>", bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z);
-                temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
-                break;
-            }
-            case RayCollision.Type.Entity:
-            {
-                EntityRayCollision rc = cast(EntityRayCollision)theRayCollision;
-                assert(rc !is null);
-                EntityData * e = rc.entity;
-                assert(e !is null && e.good);
-                CollisionBox bb = e.getBoundingBox();
-                temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
-                break;
-            }
-            }
+        case RayCollision.Type.None:
+            break;
+        case RayCollision.Type.Uninitialized:
+            //writefln("hit: uninitialized");
+            break;
+        case RayCollision.Type.Block:
+        {
+            BlockPosition b = rc.block;
+            assert(b.get().good);
+            CollisionBox bb = b.get().getBoundingBox(b);
+            //writefln("hit: block: <%s, %s, %s> to <%s, %s, %s>", bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z);
+            temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
+            break;
+        }
+        case RayCollision.Type.Entity:
+        {
+            EntityData * e = rc.entity;
+            assert(e !is null && e.good);
+            CollisionBox bb = e.getBoundingBox();
+            //writefln("hit: entity: <%s, %s, %s> to <%s, %s, %s>", bb.min.x, bb.min.y, bb.min.z, bb.max.x, bb.max.y, bb.max.z);
+            temp.add(TransformedMesh(highlightBlockMesh, Matrix.scale(bb.max - bb.min).concat(Matrix.translate(bb.min))));
+            break;
+        }
         }
         world.draw(position, viewTheta, viewPhi, dimension, temp);
         input.drawOverlay();
@@ -335,7 +348,10 @@ public final class Player
 
     private RayCollision getRayCollision(RayCollisionArgs cArgs)
     {
-        return world.collide(Ray(position, dimension, Vector.sphericalCoordinate(1.0, viewTheta, viewPhi)), reachDistance, cArgs);
+        reportRayHit = false;
+        RayCollision retval = world.collide(Ray(position, dimension, Matrix.thetaPhi(viewTheta, viewPhi).invert().apply(Vector(0, 0, -1))), reachDistance, cArgs);
+        reportRayHit = true;
+        return retval;
     }
 
     package static Player readInternal(GameLoadStream gls, World world)
@@ -463,4 +479,6 @@ public final class Player
         const float onGroundDistance = 0.05;
         return world.collidesWithBoxBlocksOnly(CollisionBox(position + Vector(-0.5 * playerWidth, -playerEyeHeight - onGroundDistance, -0.5 * playerWidth), position + Vector(0.5 * playerWidth, -playerEyeHeight, 0.5 * playerWidth), dimension), getCollideCollisionMask());
     }
+
+    package bool reportRayHit = true;
 }

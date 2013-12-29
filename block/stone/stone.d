@@ -19,6 +19,7 @@ module block.stone.stone;
 public import block.block;
 import render.generate;
 import resource.texture_atlas;
+import std.functional;
 
 public abstract class StoneType : BlockDescriptor
 {
@@ -113,12 +114,21 @@ public abstract class StoneType : BlockDescriptor
 
     public override RayCollision collide(BlockData data, Ray ray, RayCollisionArgs cArgs)
     {
-        return collideWithBlock(ray, delegate RayCollision(Vector position, Dimension dimension, float t) {return new BlockRayCollision(position, dimension, t, BlockPosition());});
+        static RayCollision collideFn(Vector position, Dimension dimension, float t) pure
+        {
+            return BlockRayCollision(position, dimension, t, BlockPosition());
+        }
+        return collideWithBlock(ray, toDelegate(&collideFn));
     }
 
     public override BoxList getCollisionBoxes(BlockPosition pos)
     {
         return [CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension)];
+    }
+
+    public override CollisionBox getBoundingBox(BlockPosition pos)
+    {
+        return CollisionBox(Vector(pos.position.x, pos.position.y, pos.position.z), Vector(pos.position.x + 1, pos.position.y + 1, pos.position.z + 1), pos.position.dimension);
     }
 
     public override ulong getCollisionMask()

@@ -29,7 +29,7 @@ public struct Matrix
     public float x01, x11, x21, x31;
     public float x02, x12, x22, x32;
 
-    public float get(in int x, in int y)
+    public pure float get(in int x, in int y)
     {
         switch(x)
         {
@@ -86,7 +86,7 @@ public struct Matrix
         }
     }
 
-    public this(float x00,
+    public pure this(float x00,
                   float x10,
                   float x20,
                   float x30,
@@ -123,7 +123,7 @@ public struct Matrix
      * @see #rotateX(double angle)
      * @see #rotateY(double angle)
      * @see #rotateZ(double angle) */
-    public static Matrix rotate(in Vector axis, in double angle)
+    public pure static Matrix rotate(in Vector axis, in double angle)
     {
         float r = abs(axis);
         if(r == 0)
@@ -155,7 +155,7 @@ public struct Matrix
      * @see #rotate(Vector axis, double angle)
      * @see #rotateY(double angle)
      * @see #rotateZ(double angle) */
-    public static Matrix rotateX(double angle)
+    public pure static Matrix rotateX(double angle)
     {
         return rotate(Vector.X, angle);
     }
@@ -169,7 +169,7 @@ public struct Matrix
      * @see #rotate(Vector axis, double angle)
      * @see #rotateX(double angle)
      * @see #rotateZ(double angle) */
-    public static Matrix rotateY(double angle)
+    public pure static Matrix rotateY(double angle)
     {
         return rotate(Vector.Y, angle);
     }
@@ -183,7 +183,7 @@ public struct Matrix
      * @see #rotate(Vector axis, double angle)
      * @see #rotateX(double angle)
      * @see #rotateY(double angle) */
-    public static Matrix rotateZ(double angle)
+    public pure static Matrix rotateZ(double angle)
     {
         return rotate(Vector.Z, angle);
     }
@@ -193,7 +193,7 @@ public struct Matrix
      * @param position
      *            the position to translate (0, 0, 0) to
      * @return the new translation matrix */
-    public static Matrix translate(Vector position)
+    public pure static Matrix translate(Vector position)
     {
         return Matrix(1,
                           0,
@@ -218,7 +218,7 @@ public struct Matrix
      * @param z
      *            the z coordinate to translate (0, 0, 0) to
      * @return the new translation matrix */
-    public static Matrix translate(in float x, in float y, in float z)
+    public pure static Matrix translate(in float x, in float y, in float z)
     {
         return Matrix(1, 0, 0, x, 0, 1, 0, y, 0, 0, 1, z);
     }
@@ -232,7 +232,7 @@ public struct Matrix
      * @param z
      *            the amount to scale the z coordinate by
      * @return the new scaling matrix */
-    public static Matrix scale(in float x, in float y, in float z)
+    public pure static Matrix scale(in float x, in float y, in float z)
     {
         return Matrix(x, 0, 0, 0, 0, y, 0, 0, 0, 0, z, 0);
     }
@@ -244,7 +244,7 @@ public struct Matrix
      *            <code>s.y</code> is the amount to scale the y coordinate by.<br/>
      *            <code>s.z</code> is the amount to scale the z coordinate by.
      * @return the new scaling matrix */
-    public static Matrix scale(in Vector s)
+    public pure static Matrix scale(in Vector s)
     {
         return Matrix(s.x, 0, 0, 0, 0, s.y, 0, 0, 0, 0, s.z, 0);
     }
@@ -254,13 +254,13 @@ public struct Matrix
      * @param s
      *            the amount to scale by
      * @return the new scaling matrix */
-    public static Matrix scale(in float s)
+    public pure static Matrix scale(in float s)
     {
         return Matrix(s, 0, 0, 0, 0, s, 0, 0, 0, 0, s, 0);
     }
 
     /** @return the determinant of this matrix */
-    public @property float determinant()
+    public pure @property float determinant()
     {
         return this.x00 * (this.x11 * this.x22 - this.x12 * this.x21)
                 + this.x10 * (this.x02 * this.x21 - this.x01 * this.x22)
@@ -269,7 +269,7 @@ public struct Matrix
 
     /** @return the inverse of this matrix or the identity matrix if this matrix
      *         is singular (has a determinant of 0). */
-    public Matrix invert()
+    public pure Matrix invert()
     {
         float det = this.determinant;
         if(det == 0.0f)
@@ -304,7 +304,7 @@ public struct Matrix
                                   * factor);
     }
 
-    public Matrix concat(Matrix rt) const
+    public pure Matrix concat(Matrix rt) const
     {
         return Matrix(this.x00 * rt.x00 + this.x01 * rt.x10 + this.x02
                 * rt.x20, this.x10 * rt.x00 + this.x11 * rt.x10 + this.x12
@@ -321,7 +321,7 @@ public struct Matrix
                 * rt.x12 + this.x32 * rt.x22 + rt.x32);
 	}
 
-    public Vector apply(Vector v) const
+    public pure Vector apply(Vector v) const
     {
         return Vector(v.x * this.x00 + v.y * this.x10 + v.z * this.x20
                 + this.x30, v.x * this.x01 + v.y * this.x11 + v.z * this.x21
@@ -329,14 +329,14 @@ public struct Matrix
                 + this.x32);
     }
 
-    public Vector applyToNormal(Vector v) const
+    public pure Vector applyToNormal(Vector v) const
     {
         return normalize(Vector(v.x * this.x00 + v.y * this.x10 + v.z * this.x20, v.x
                 * this.x01 + v.y * this.x11 + v.z * this.x21, v.x * this.x02
                 + v.y * this.x12 + v.z * this.x22));
     }
 
-    public @property Matrix removeTranslate()
+    public pure @property Matrix removeTranslate()
     {
         return Matrix(this.x00,
                           this.x10,
@@ -363,7 +363,7 @@ public struct Matrix
     public static immutable Matrix ROTATEZ_PI = rotateZ(PI);
     public static immutable Matrix ROTATEZ_3_PI_2 = rotateZ(3 * PI / 2);
 
-    public static Matrix thetaPhi(double theta, double phi)
+    public pure static Matrix thetaPhi(double theta, double phi)
     {
         Matrix t = Matrix.rotateX(-phi);
         return rotateY(theta).concat(t);
